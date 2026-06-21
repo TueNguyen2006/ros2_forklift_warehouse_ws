@@ -1,0 +1,9 @@
+build/
+install/
+log/
+work/
+
+__pycache__/
+*.py[cod]
+
+.DS_Store

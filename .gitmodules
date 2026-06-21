@@ -1,0 +1,6 @@
+[submodule "src/third_party/ROS2-Forklift-Simulation"]
+	path = src/third_party/ROS2-Forklift-Simulation
+	url = https://github.com/cangozpi/ROS2-Forklift-Simulation.git
+[submodule "src/third_party/aws-robomaker-small-warehouse-world"]
+	path = src/third_party/aws-robomaker-small-warehouse-world
+	url = https://github.com/aws-robotics/aws-robomaker-small-warehouse-world.git

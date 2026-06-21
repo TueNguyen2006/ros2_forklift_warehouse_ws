@@ -1,0 +1,490 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rear_steer_forklift">
+  <xacro:include filename="inertial_macros.xacro"/>
+
+  <xacro:property name="wheel_radius" value="0.18"/>
+  <xacro:property name="wheel_width" value="0.09"/>
+  <xacro:property name="front_axle_x" value="0.78"/>
+  <xacro:property name="rear_axle_x" value="-0.72"/>
+  <xacro:property name="front_track" value="0.92"/>
+  <xacro:property name="rear_track" value="0.78"/>
+  <xacro:property name="chassis_length" value="1.80"/>
+  <xacro:property name="chassis_width" value="1.10"/>
+  <xacro:property name="chassis_height" value="0.35"/>
+  <xacro:property name="cabin_length" value="1.20"/>
+  <xacro:property name="cabin_width" value="1.02"/>
+  <xacro:property name="cabin_height" value="1.65"/>
+  <xacro:property name="mast_depth" value="0.18"/>
+  <xacro:property name="mast_width" value="1.02"/>
+  <xacro:property name="mast_height" value="2.85"/>
+  <xacro:property name="carriage_depth" value="0.10"/>
+  <xacro:property name="carriage_width" value="1.00"/>
+  <xacro:property name="carriage_height" value="1.20"/>
+  <xacro:property name="fork_length" value="1.10"/>
+  <xacro:property name="fork_width" value="0.12"/>
+  <xacro:property name="fork_height" value="0.05"/>
+  <xacro:property name="fork_gap" value="0.82"/>
+  <xacro:property name="roof_z" value="${wheel_radius + chassis_height + cabin_height}"/>
+  <xacro:property name="mast_x" value="0.98"/>
+
+  <link name="base_link"/>
+
+  <link name="chassis_link">
+    <visual>
+      <origin xyz="0 0 ${wheel_radius + chassis_height / 2.0}"/>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="0.96 0.78 0.10 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${wheel_radius + chassis_height / 2.0}"/>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_box mass="950.0" x="${chassis_length}" y="${chassis_width}" z="${chassis_height}">
+      <origin xyz="0 0 ${wheel_radius + chassis_height / 2.0}"/>
+    </xacro:inertial_box>
+  </link>
+
+  <joint name="base_to_chassis" type="fixed">
+    <parent link="base_link"/>
+    <child link="chassis_link"/>
+    <origin xyz="0 0 0"/>
+  </joint>
+
+  <link name="cabin_link">
+    <visual>
+      <origin xyz="-0.10 0 ${wheel_radius + chassis_height + cabin_height / 2.0}"/>
+      <geometry>
+        <box size="${cabin_length} ${cabin_width} ${cabin_height}"/>
+      </geometry>
+      <material name="dark_gray">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.10 0 ${wheel_radius + chassis_height + cabin_height / 2.0}"/>
+      <geometry>
+        <box size="${cabin_length} ${cabin_width} ${cabin_height}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_box mass="420.0" x="${cabin_length}" y="${cabin_width}" z="${cabin_height}">
+      <origin xyz="-0.10 0 ${wheel_radius + chassis_height + cabin_height / 2.0}"/>
+    </xacro:inertial_box>
+  </link>
+
+  <joint name="chassis_to_cabin" type="fixed">
+    <parent link="chassis_link"/>
+    <child link="cabin_link"/>
+    <origin xyz="0 0 0"/>
+  </joint>
+
+  <link name="mast_link">
+    <visual>
+      <origin xyz="${mast_x} 0 ${wheel_radius + mast_height / 2.0}"/>
+      <geometry>
+        <box size="${mast_depth} ${mast_width} ${mast_height}"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="${mast_x} 0 ${wheel_radius + mast_height / 2.0}"/>
+      <geometry>
+        <box size="${mast_depth} ${mast_width} ${mast_height}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_box mass="260.0" x="${mast_depth}" y="${mast_width}" z="${mast_height}">
+      <origin xyz="${mast_x} 0 ${wheel_radius + mast_height / 2.0}"/>
+    </xacro:inertial_box>
+  </link>
+
+  <joint name="chassis_to_mast" type="fixed">
+    <parent link="chassis_link"/>
+    <child link="mast_link"/>
+    <origin xyz="0 0 0"/>
+  </joint>
+
+  <link name="fork_base_link">
+    <visual>
+      <origin xyz="${mast_x + carriage_depth / 2.0} 0 ${wheel_radius + carriage_height / 2.0}"/>
+      <geometry>
+        <box size="${carriage_depth} ${carriage_width} ${carriage_height}"/>
+      </geometry>
+      <material name="steel">
+        <color rgba="0.45 0.45 0.50 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="${mast_x + carriage_depth / 2.0} 0 ${wheel_radius + carriage_height / 2.0}"/>
+      <geometry>
+        <box size="${carriage_depth} ${carriage_width} ${carriage_height}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_box mass="140.0" x="${carriage_depth}" y="${carriage_width}" z="${carriage_height}">
+      <origin xyz="${mast_x + carriage_depth / 2.0} 0 ${wheel_radius + carriage_height / 2.0}"/>
+    </xacro:inertial_box>
+  </link>
+
+  <joint name="fork_base_joint" type="prismatic">
+    <parent link="mast_link"/>
+    <child link="fork_base_link"/>
+    <origin xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0.0" upper="1.20" effort="2500.0" velocity="0.35"/>
+    <dynamics damping="80.0" friction="10.0"/>
+  </joint>
+
+  <link name="left_fork_link">
+    <visual>
+      <origin xyz="${mast_x + carriage_depth + fork_length / 2.0} ${fork_gap / 2.0} ${wheel_radius + 0.08}"/>
+      <geometry>
+        <box size="${fork_length} ${fork_width} ${fork_height}"/>
+      </geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <origin xyz="${mast_x + carriage_depth + fork_length / 2.0} ${fork_gap / 2.0} ${wheel_radius + 0.08}"/>
+      <geometry>
+        <box size="${fork_length} ${fork_width} ${fork_height}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_box mass="22.0" x="${fork_length}" y="${fork_width}" z="${fork_height}">
+      <origin xyz="${mast_x + carriage_depth + fork_length / 2.0} ${fork_gap / 2.0} ${wheel_radius + 0.08}"/>
+    </xacro:inertial_box>
+  </link>
+
+  <joint name="left_fork_joint" type="fixed">
+    <parent link="fork_base_link"/>
+    <child link="left_fork_link"/>
+    <origin xyz="0 0 0"/>
+  </joint>
+
+  <link name="right_fork_link">
+    <visual>
+      <origin xyz="${mast_x + carriage_depth + fork_length / 2.0} -${fork_gap / 2.0} ${wheel_radius + 0.08}"/>
+      <geometry>
+        <box size="${fork_length} ${fork_width} ${fork_height}"/>
+      </geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <origin xyz="${mast_x + carriage_depth + fork_length / 2.0} -${fork_gap / 2.0} ${wheel_radius + 0.08}"/>
+      <geometry>
+        <box size="${fork_length} ${fork_width} ${fork_height}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_box mass="22.0" x="${fork_length}" y="${fork_width}" z="${fork_height}">
+      <origin xyz="${mast_x + carriage_depth + fork_length / 2.0} -${fork_gap / 2.0} ${wheel_radius + 0.08}"/>
+    </xacro:inertial_box>
+  </link>
+
+  <joint name="right_fork_joint" type="fixed">
+    <parent link="fork_base_link"/>
+    <child link="right_fork_link"/>
+    <origin xyz="0 0 0"/>
+  </joint>
+
+  <link name="front_left_wheel_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="wheel_black">
+        <color rgba="0.05 0.05 0.05 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_cylinder mass="45.0" length="${wheel_width}" radius="${wheel_radius}">
+      <origin xyz="0 0 0"/>
+    </xacro:inertial_cylinder>
+  </link>
+
+  <joint name="front_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_left_wheel_link"/>
+    <origin xyz="${front_axle_x} ${front_track / 2.0} ${wheel_radius}" rpy="-1.57079632679 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="front_right_wheel_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="wheel_black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_cylinder mass="45.0" length="${wheel_width}" radius="${wheel_radius}">
+      <origin xyz="0 0 0"/>
+    </xacro:inertial_cylinder>
+  </link>
+
+  <joint name="front_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_right_wheel_link"/>
+    <origin xyz="${front_axle_x} -${front_track / 2.0} ${wheel_radius}" rpy="1.57079632679 0 0"/>
+    <axis xyz="0 0 -1"/>
+  </joint>
+
+  <link name="rear_left_steer_link">
+    <visual>
+      <origin xyz="0 0 0.12"/>
+      <geometry>
+        <box size="0.10 0.08 0.24"/>
+      </geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.12"/>
+      <geometry>
+        <box size="0.10 0.08 0.24"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_box mass="15.0" x="0.10" y="0.08" z="0.24">
+      <origin xyz="0 0 0.12"/>
+    </xacro:inertial_box>
+  </link>
+
+  <joint name="rear_left_steering_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="rear_left_steer_link"/>
+    <origin xyz="${rear_axle_x} ${rear_track / 2.0} 0.0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.90" upper="0.90" effort="1200.0" velocity="1.2"/>
+    <dynamics damping="15.0" friction="0.5"/>
+  </joint>
+
+  <link name="rear_left_wheel_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="wheel_black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_cylinder mass="30.0" length="${wheel_width}" radius="${wheel_radius}">
+      <origin xyz="0 0 0"/>
+    </xacro:inertial_cylinder>
+  </link>
+
+  <joint name="rear_left_wheel_spin_joint" type="continuous">
+    <parent link="rear_left_steer_link"/>
+    <child link="rear_left_wheel_link"/>
+    <origin xyz="0 0 ${wheel_radius}" rpy="-1.57079632679 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.2" friction="0.0"/>
+  </joint>
+
+  <link name="rear_right_steer_link">
+    <visual>
+      <origin xyz="0 0 0.12"/>
+      <geometry>
+        <box size="0.10 0.08 0.24"/>
+      </geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.12"/>
+      <geometry>
+        <box size="0.10 0.08 0.24"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_box mass="15.0" x="0.10" y="0.08" z="0.24">
+      <origin xyz="0 0 0.12"/>
+    </xacro:inertial_box>
+  </link>
+
+  <joint name="rear_right_steering_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="rear_right_steer_link"/>
+    <origin xyz="${rear_axle_x} -${rear_track / 2.0} 0.0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.90" upper="0.90" effort="1200.0" velocity="1.2"/>
+    <dynamics damping="15.0" friction="0.5"/>
+  </joint>
+
+  <link name="rear_right_wheel_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="wheel_black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_cylinder mass="30.0" length="${wheel_width}" radius="${wheel_radius}">
+      <origin xyz="0 0 0"/>
+    </xacro:inertial_cylinder>
+  </link>
+
+  <joint name="rear_right_wheel_spin_joint" type="continuous">
+    <parent link="rear_right_steer_link"/>
+    <child link="rear_right_wheel_link"/>
+    <origin xyz="0 0 ${wheel_radius}" rpy="1.57079632679 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <dynamics damping="0.2" friction="0.0"/>
+  </joint>
+
+  <link name="imu_link"/>
+  <joint name="imu_joint" type="fixed">
+    <parent link="chassis_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0.0 0.0 ${wheel_radius + chassis_height + 0.15}"/>
+  </joint>
+
+  <link name="laser_frame_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.05" length="0.06"/>
+      </geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.05" length="0.06"/>
+      </geometry>
+    </collision>
+    <xacro:inertial_cylinder mass="0.5" length="0.06" radius="0.05">
+      <origin xyz="0 0 0"/>
+    </xacro:inertial_cylinder>
+  </link>
+
+  <joint name="laser_joint" type="fixed">
+    <parent link="cabin_link"/>
+    <child link="laser_frame_link"/>
+    <origin xyz="0.05 0.0 ${roof_z - 0.10}"/>
+  </joint>
+
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+    </hardware>
+
+    <joint name="front_left_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="front_right_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="rear_left_steering_joint">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="rear_right_steering_joint">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="fork_base_joint">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+  <gazebo>
+    <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+      <robot_param>robot_description</robot_param>
+      <robot_param_node>robot_state_publisher</robot_param_node>
+      <parameters>$(find forklift_description_realistic)/config/rear_steer_controller.yaml</parameters>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="front_left_wheel_link">
+    <mu1 value="80.0"/>
+    <mu2 value="80.0"/>
+    <kp value="1000000.0"/>
+    <kd value="10.0"/>
+  </gazebo>
+
+  <gazebo reference="front_right_wheel_link">
+    <mu1 value="80.0"/>
+    <mu2 value="80.0"/>
+    <kp value="1000000.0"/>
+    <kd value="10.0"/>
+  </gazebo>
+
+  <gazebo reference="rear_left_wheel_link">
+    <mu1 value="20.0"/>
+    <mu2 value="20.0"/>
+    <kp value="1000000.0"/>
+    <kd value="10.0"/>
+  </gazebo>
+
+  <gazebo reference="rear_right_wheel_link">
+    <mu1 value="20.0"/>
+    <mu2 value="20.0"/>
+    <kp value="1000000.0"/>
+    <kd value="10.0"/>
+  </gazebo>
+
+  <gazebo reference="laser_frame_link">
+    <sensor name="laser" type="ray">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>true</visualize>
+      <update_rate>15</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.25</min>
+          <max>12.0</max>
+        </range>
+      </ray>
+      <plugin name="laser_controller" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <argument>~/out:=scan</argument>
+        </ros>
+        <output_type>sensor_msgs/LaserScan</output_type>
+        <frame_name>laser_frame_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <visualize>false</visualize>
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <remapping>~/out:=imu</remapping>
+        </ros>
+        <frame_name>imu_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+</robot>

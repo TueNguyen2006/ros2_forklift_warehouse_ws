@@ -1,0 +1,26 @@
+initial_pose:
+  x: -4.8
+  y: -8.2
+  yaw: 1.57
+
+goals:
+  - {name: "southwest_staging", x: -4.6, y: -6.5, yaw: 1.57}
+  - {name: "west_mid_south", x: -5.2, y: -2.0, yaw: 1.57}
+  - {name: "west_mid_north", x: -5.2, y: 2.0, yaw: 1.57}
+  - {name: "west_north", x: -5.2, y: 7.5, yaw: 1.57}
+  - {name: "top_cross_west", x: -1.2, y: 8.7, yaw: 0.0}
+  - {name: "top_cross_center", x: 1.0, y: 8.7, yaw: 0.0}
+  - {name: "east_top_aisle_entry", x: 2.2, y: 7.3, yaw: -1.57}
+  - {name: "east_middle_aisle_upper", x: 2.2, y: 5.0, yaw: -1.57}
+  - {name: "east_middle_aisle_lower", x: 2.2, y: 2.5, yaw: -1.57}
+  - {name: "east_south_aisle_upper", x: 4.7, y: 4.2, yaw: -1.57}
+  - {name: "east_south_aisle_mid", x: 4.7, y: 1.0, yaw: -1.57}
+  - {name: "east_south_aisle_low", x: 4.7, y: -2.2, yaw: -1.57}
+  - {name: "east_return_cross", x: 1.2, y: -3.8, yaw: 3.14}
+  - {name: "center_south", x: -1.0, y: -4.5, yaw: 3.14}
+  - {name: "lower_island_entry", x: -1.8, y: -6.2, yaw: -1.57}
+  - {name: "lower_island_rear", x: -2.7, y: -7.8, yaw: 3.14}
+  - {name: "center_return", x: -1.2, y: -0.8, yaw: 1.57}
+  - {name: "center_north", x: -1.4, y: 4.6, yaw: 1.57}
+  - {name: "top_cross_exit", x: 0.2, y: 8.0, yaw: 3.14}
+  - {name: "dock_return", x: -4.0, y: -7.0, yaw: -1.57}

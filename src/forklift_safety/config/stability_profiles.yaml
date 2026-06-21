@@ -1,0 +1,43 @@
+global:
+  gravity: 9.81
+  support_half_width: 0.56
+  lateral_safety_factor: 0.55
+  max_accel: 0.60
+  max_yaw_rate: 0.60
+  max_yaw_accel: 0.75
+  lift_cg_height_gain: 0.85
+  full_penalty_height: 1.20
+  min_height_velocity_factor: 0.25
+  min_speed_for_curvature: 0.05
+  overheight_creep_speed: 0.15
+  overheight_yaw_rate: 0.18
+  emergency_roll_deg: 14.0
+  emergency_pitch_deg: 12.0
+
+profiles:
+  EMPTY:
+    mass: 1400.0
+    cg_height: 0.34
+    cg_offset_x: -0.18
+    max_travel_lift_height: 0.25
+    max_linear_speed: 0.55
+    max_decel: 0.65
+    max_curvature: 0.38
+
+  HALF:
+    mass: 1850.0
+    cg_height: 0.42
+    cg_offset_x: 0.02
+    max_travel_lift_height: 0.22
+    max_linear_speed: 0.45
+    max_decel: 0.55
+    max_curvature: 0.30
+
+  RATED:
+    mass: 2200.0
+    cg_height: 0.52
+    cg_offset_x: 0.10
+    max_travel_lift_height: 0.18
+    max_linear_speed: 0.30
+    max_decel: 0.35
+    max_curvature: 0.20
