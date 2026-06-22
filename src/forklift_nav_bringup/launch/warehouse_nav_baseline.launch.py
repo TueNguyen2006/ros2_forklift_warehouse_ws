@@ -28,9 +28,15 @@ BASE_COLLISION_HEIGHT = 1.30
 BASE_COLLISION_X_OFFSET = 0.00
 BASE_COLLISION_Z_OFFSET = 0.68
 BASE_COLLISION_MASS = 1450.0
-BASE_INERTIAL_X_OFFSET = -0.18
 BASE_INERTIAL_Z_OFFSET = 0.34
 NAV_BASE_OFFSET_X = 0.55
+# GazeboRosPlanarMove applies angular velocity about the model center of mass,
+# while Nav2 tracks base_footprint.  base_link is NAV_BASE_OFFSET_X behind
+# base_footprint, so placing its inertial origin this far forward makes the
+# model center of mass coincide with the navigation reference point.  If the
+# inertial origin is left near base_link, every yaw correction also translates
+# base_footprint and the path follower diverges from otherwise valid paths.
+BASE_INERTIAL_X_OFFSET = NAV_BASE_OFFSET_X
 
 
 def _set_or_create_origin(
@@ -204,6 +210,18 @@ def _configure_planar_base(root: ElementTree.Element) -> None:
         if "libgazebo_ros2_control.so" in plugin_filenames:
             root.remove(gazebo_element)
 
+    # This profile is deliberately kinematic.  Gravity/contact resolution can
+    # otherwise lift and pitch the model while GazeboRosPlanarMove continues to
+    # publish a planar odom frame.  Once roll/pitch grows, the projected yaw can
+    # jump by about 90 degrees and both Smac replanning and RPP path tracking
+    # become unstable.  Horizontal obstacle avoidance remains Nav2's job.
+    base_link_gazebo = ElementTree.SubElement(
+        root,
+        "gazebo",
+        {"reference": "base_link"},
+    )
+    ElementTree.SubElement(base_link_gazebo, "gravity").text = "false"
+
     planar_move = ElementTree.SubElement(root, "gazebo")
     plugin = ElementTree.SubElement(
         planar_move,
@@ -222,6 +240,154 @@ def _configure_planar_base(root: ElementTree.Element) -> None:
     ElementTree.SubElement(plugin, "covariance_x").text = "0.0001"
     ElementTree.SubElement(plugin, "covariance_y").text = "0.0001"
     ElementTree.SubElement(plugin, "covariance_yaw").text = "0.01"
+
+
+def _disable_lidar_visualization(root: ElementTree.Element) -> None:
+    for gazebo_element in root.findall("gazebo"):
+        if gazebo_element.attrib.get("reference") != "laser_frame_link":
+            continue
+
+        for sensor in gazebo_element.findall("sensor"):
+            if sensor.attrib.get("type") != "ray":
+                continue
+
+            visualize = sensor.find("visualize")
+            if visualize is None:
+                visualize = ElementTree.SubElement(sensor, "visualize")
+            visualize.text = "false"
+
+
+def _remove_existing_camera_assets(root: ElementTree.Element) -> None:
+    for gazebo_element in list(root.findall("gazebo")):
+        if gazebo_element.attrib.get("reference") == "camera_link":
+            root.remove(gazebo_element)
+
+    for joint in list(root.findall("joint")):
+        if joint.attrib.get("name") in {"camera_joint", "camera_optical_joint"}:
+            root.remove(joint)
+
+    for link in list(root.findall("link")):
+        if link.attrib.get("name") in {"camera_link", "camera_link_optical"}:
+            root.remove(link)
+
+
+def _add_top_camera_suite(root: ElementTree.Element) -> None:
+    if root.find("./link[@name='rgb_camera_link']") is not None:
+        return
+
+    def add_link(name: str) -> None:
+        root.append(ElementTree.Element("link", {"name": name}))
+
+    def add_fixed_joint(
+        name: str,
+        parent: str,
+        child: str,
+        xyz: str,
+        rpy: str,
+    ) -> None:
+        joint = ElementTree.Element("joint", {"name": name, "type": "fixed"})
+        ElementTree.SubElement(joint, "parent", {"link": parent})
+        ElementTree.SubElement(joint, "child", {"link": child})
+        ElementTree.SubElement(joint, "origin", {"xyz": xyz, "rpy": rpy})
+        root.append(joint)
+
+    add_link("rgb_camera_link")
+    add_link("rgb_camera_optical_link")
+    add_link("depth_camera_link")
+    add_link("depth_camera_optical_link")
+
+    add_fixed_joint(
+        "rgb_camera_joint",
+        "chassis_top_link",
+        "rgb_camera_link",
+        "0.58 0.0 1.52",
+        "0 0 1.57079632679",
+    )
+    add_fixed_joint(
+        "rgb_camera_optical_joint",
+        "rgb_camera_link",
+        "rgb_camera_optical_link",
+        "0 0 0",
+        "-1.57079632679 0 -1.57079632679",
+    )
+    add_fixed_joint(
+        "depth_camera_joint",
+        "chassis_top_link",
+        "depth_camera_link",
+        "0.52 0.0 1.42",
+        "0 0 1.57079632679",
+    )
+    add_fixed_joint(
+        "depth_camera_optical_joint",
+        "depth_camera_link",
+        "depth_camera_optical_link",
+        "0 0 0",
+        "-1.57079632679 0 -1.57079632679",
+    )
+
+    rgb_gazebo = ElementTree.Element("gazebo", {"reference": "rgb_camera_link"})
+    rgb_sensor = ElementTree.SubElement(
+        rgb_gazebo,
+        "sensor",
+        {"name": "rgb_camera_sensor", "type": "camera"},
+    )
+    ElementTree.SubElement(rgb_sensor, "pose").text = "0 0 0 0 0 0"
+    ElementTree.SubElement(rgb_sensor, "visualize").text = "false"
+    ElementTree.SubElement(rgb_sensor, "update_rate").text = "15"
+    rgb_camera = ElementTree.SubElement(rgb_sensor, "camera")
+    ElementTree.SubElement(rgb_camera, "horizontal_fov").text = "1.089"
+    rgb_image = ElementTree.SubElement(rgb_camera, "image")
+    ElementTree.SubElement(rgb_image, "format").text = "R8G8B8"
+    ElementTree.SubElement(rgb_image, "width").text = "640"
+    ElementTree.SubElement(rgb_image, "height").text = "480"
+    rgb_clip = ElementTree.SubElement(rgb_camera, "clip")
+    ElementTree.SubElement(rgb_clip, "near").text = "0.05"
+    ElementTree.SubElement(rgb_clip, "far").text = "12.0"
+    rgb_plugin = ElementTree.SubElement(
+        rgb_sensor,
+        "plugin",
+        {
+            "name": "rgb_camera_controller",
+            "filename": "libgazebo_ros_camera.so",
+        },
+    )
+    ElementTree.SubElement(rgb_plugin, "frame_name").text = "rgb_camera_optical_link"
+    ElementTree.SubElement(rgb_plugin, "camera_name").text = "rgb_camera"
+    root.append(rgb_gazebo)
+
+    depth_gazebo = ElementTree.Element("gazebo", {"reference": "depth_camera_link"})
+    depth_sensor = ElementTree.SubElement(
+        depth_gazebo,
+        "sensor",
+        {"name": "depth_camera_sensor", "type": "depth"},
+    )
+    ElementTree.SubElement(depth_sensor, "pose").text = "0 0 0 0 0 0"
+    ElementTree.SubElement(depth_sensor, "visualize").text = "false"
+    ElementTree.SubElement(depth_sensor, "update_rate").text = "10"
+    depth_camera = ElementTree.SubElement(depth_sensor, "camera")
+    ElementTree.SubElement(depth_camera, "horizontal_fov").text = "1.089"
+    depth_image = ElementTree.SubElement(depth_camera, "image")
+    ElementTree.SubElement(depth_image, "format").text = "B8G8R8"
+    ElementTree.SubElement(depth_image, "width").text = "640"
+    ElementTree.SubElement(depth_image, "height").text = "480"
+    depth_clip = ElementTree.SubElement(depth_camera, "clip")
+    ElementTree.SubElement(depth_clip, "near").text = "0.05"
+    ElementTree.SubElement(depth_clip, "far").text = "12.0"
+    depth_plugin = ElementTree.SubElement(
+        depth_sensor,
+        "plugin",
+        {
+            "name": "depth_camera_controller",
+            "filename": "libgazebo_ros_camera.so",
+        },
+    )
+    ElementTree.SubElement(depth_plugin, "frame_name").text = (
+        "depth_camera_optical_link"
+    )
+    ElementTree.SubElement(depth_plugin, "camera_name").text = "depth_camera"
+    ElementTree.SubElement(depth_plugin, "min_depth").text = "0.10"
+    ElementTree.SubElement(depth_plugin, "max_depth").text = "12.0"
+    root.append(depth_gazebo)
 
 
 def _build_baseline_robot_description(forklift_robot_dir: str) -> str:
@@ -248,6 +414,9 @@ def _build_baseline_robot_description(forklift_robot_dir: str) -> str:
             continue
 
     _ensure_base_footprint_root(root)
+    _disable_lidar_visualization(root)
+    _remove_existing_camera_assets(root)
+    _add_top_camera_suite(root)
     _remove_link_dynamics(root)
     _make_simple_rigid_joint_tree(root)
     _configure_simple_collision_body(root)
@@ -423,13 +592,13 @@ def generate_launch_description():
             DeclareLaunchArgument("load_profile", default_value="EMPTY"),
             DeclareLaunchArgument("use_amcl", default_value="false"),
             DeclareLaunchArgument("use_costmap_filters", default_value="false"),
-            DeclareLaunchArgument("use_stability_guard", default_value="true"),
+            DeclareLaunchArgument("use_stability_guard", default_value="false"),
             DeclareLaunchArgument("use_collision_monitor", default_value="false"),
             DeclareLaunchArgument("cmd_vel_in_topic", default_value="cmd_vel_smoothed"),
             DeclareLaunchArgument("cmd_vel_out_topic", default_value="/cmd_vel"),
             DeclareLaunchArgument(
                 "velocity_smoother_output_topic",
-                default_value="cmd_vel_smoothed",
+                default_value="/cmd_vel",
             ),
             DeclareLaunchArgument(
                 "stability_guard_output_topic",

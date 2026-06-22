@@ -8,6 +8,14 @@
       <real_time_update_rate>1000</real_time_update_rate>
     </physics>
 
+    <gui fullscreen="0">
+      <camera name="overview_camera">
+        <pose>0.0 -15.5 18.5 0.0 0.92 1.57</pose>
+        <view_controller>orbit</view_controller>
+        <projection_type>perspective</projection_type>
+      </camera>
+    </gui>
+
     <scene>
       <ambient>0.85 0.85 0.85 1.0</ambient>
       <background>0.95 0.95 0.97 1.0</background>

@@ -19,4 +19,5 @@ fi
 ros2 launch forklift_nav_bringup warehouse_nav_baseline.launch.py \
   use_amcl:=false \
   use_initial_pose_publisher:=false \
+  enable_debug_logger:=true \
   "$@"

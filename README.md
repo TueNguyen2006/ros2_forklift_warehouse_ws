@@ -54,11 +54,46 @@ This workspace implements a simulation-first forklift navigation stack for `WSL 
    ./tools/run_realistic_nav.sh
    ```
 
-5. Run the route matrix:
+5. Run the lattice v2 navigation stack:
+
+   ```bash
+   ./tools/run_lattice_v2_nav.sh
+   ```
+
+6. Run the lattice v2 stack with Gazebo + RViz on the wide-open warehouse test scene:
+
+   ```bash
+   ./tools/run_lattice_v2_rviz.sh
+   ```
+
+7. Run the lattice v2 smoke suite:
+
+   ```bash
+   ./tools/run_lattice_v2_smoke_test.sh
+   ```
+
+8. Run the route matrix:
 
    ```bash
    ./tools/run_route_matrix.sh
    ```
+
+## Lattice v2 Notes
+
+The `warehouse_nav_lattice_v2.launch.py` bringup is the current reverse-capable Nav2 configuration for the baseline forklift proxy. It uses:
+
+- `nav2_smac_planner/SmacPlannerLattice`
+- `nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController`
+- reverse-capable motion primitives
+- the wide-open warehouse map/world for deterministic smoke testing
+
+Recommended commands:
+
+```bash
+./tools/run_lattice_v2_nav.sh
+./tools/run_lattice_v2_rviz.sh
+./tools/run_lattice_v2_smoke_test.sh
+```
 
 ## Notes
 

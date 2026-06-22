@@ -16,7 +16,7 @@ if pgrep -x gzserver >/dev/null 2>&1; then
   exit 1
 fi
 
-ros2 launch forklift_nav_bringup warehouse_nav_baseline.launch.py \
+ros2 launch forklift_nav_bringup warehouse_nav_lattice_v2.launch.py \
   use_amcl:=false \
   use_initial_pose_publisher:=false \
   "$@"

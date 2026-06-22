@@ -2,6 +2,7 @@ build/
 install/
 log/
 work/
+tmp_logs/
 
 __pycache__/
 *.py[cod]

@@ -65,40 +65,47 @@ controller_server:
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.12
-      movement_time_allowance: 20.0
+      required_movement_radius: 0.10
+      movement_time_allowance: 25.0
 
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.20
-      yaw_goal_tolerance: 0.18
+      # The bundled lattice has 16 heading bins (22.5 deg each). The goal
+      # tolerance must be wider than half a bin or a geometrically completed
+      # path can be rejected solely by heading quantization.
+      yaw_goal_tolerance: 0.25
 
-    # Simpler and more predictable controller for the baseline forklift setup.
+    # Version 2: Lattice planner with reverse-capable path following.
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.25
-      min_approach_linear_velocity: 0.06
-      lookahead_dist: 0.80
-      min_lookahead_dist: 0.45
-      max_lookahead_dist: 1.20
+      desired_linear_vel: 0.22
+      # The Gazebo planar model is contact-constrained and becomes intermittent
+      # below roughly 0.08 m/s.  Keeping final-approach and regulated speeds
+      # above that threshold prevents a valid path from stalling just outside
+      # the goal tolerance while RPP is still publishing commands.
+      min_approach_linear_velocity: 0.10
+      lookahead_dist: 0.75
+      min_lookahead_dist: 0.35
+      max_lookahead_dist: 1.10
       lookahead_time: 1.40
       rotate_to_heading_angular_vel: 0.35
       transform_tolerance: 0.30
       use_velocity_scaled_lookahead_dist: True
-      approach_velocity_scaling_dist: 0.80
+      approach_velocity_scaling_dist: 0.90
       max_allowed_time_to_collision_up_to_carrot: 1.00
       use_collision_detection: True
       use_regulated_linear_velocity_scaling: True
       use_cost_regulated_linear_velocity_scaling: True
-      cost_scaling_dist: 0.50
-      cost_scaling_gain: 0.90
+      cost_scaling_dist: 0.55
+      cost_scaling_gain: 0.80
       inflation_cost_scaling_factor: 2.8
-      regulated_linear_scaling_min_radius: 1.40
-      regulated_linear_scaling_min_speed: 0.06
+      regulated_linear_scaling_min_radius: 1.10
+      regulated_linear_scaling_min_speed: 0.10
       use_rotate_to_heading: False
-      allow_reversing: False
-      max_angular_accel: 0.50
+      allow_reversing: True
+      max_angular_accel: 0.60
       max_robot_pose_search_dist: 10.0
       use_interpolation: True
 
@@ -114,7 +121,9 @@ local_costmap:
       width: 10
       height: 10
       resolution: 0.05
-      footprint: "[[0.30, 0.55], [0.30, -0.55], [-1.30, -0.55], [-1.30, 0.55]]"
+      # Physical body is x=[-1.35, 0.25], y=[-0.55, 0.55] relative
+      # to base_footprint. Keep a small planning margin on every side.
+      footprint: "[[0.30, 0.60], [0.30, -0.60], [-1.40, -0.60], [-1.40, 0.60]]"
       plugins: ["obstacle_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -145,7 +154,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
-      footprint: "[[0.30, 0.55], [0.30, -0.55], [-1.30, -0.55], [-1.30, 0.55]]"
+      footprint: "[[0.30, 0.60], [0.30, -0.60], [-1.40, -0.60], [-1.40, 0.60]]"
       resolution: 0.05
       track_unknown_space: false
       plugins: ["static_layer", "inflation_layer"]
@@ -164,27 +173,34 @@ planner_server:
     use_sim_time: True
     planner_plugins: ["GridBased"]
     GridBased:
-      plugin: "nav2_smac_planner/SmacPlannerHybrid"
+      plugin: "nav2_smac_planner/SmacPlannerLattice"
       downsample_costmap: false
       downsampling_factor: 1
-      tolerance: 0.35
+      tolerance: 0.25
       allow_unknown: false
       max_iterations: 1000000
-      max_on_approach_iterations: 1000
+      max_on_approach_iterations: 2000
       smooth_path: true
-      motion_model_for_search: "DUBIN"
-      angle_quantization_bins: 96
-      minimum_turning_radius: 0.65
-      reverse_penalty: 1.0
-      change_penalty: 0.05
+      minimum_turning_radius: 0.50
+      reverse_penalty: 1.30
+      change_penalty: 0.15
       non_straight_penalty: 1.10
-      cost_penalty: 1.8
+      cost_penalty: 2.0
+      rotation_penalty: 5.0
       retrospective_penalty: 0.015
-      analytic_expansion_ratio: 4.0
-      analytic_expansion_max_length: 4.0
+      analytic_expansion_ratio: 3.5
+      analytic_expansion_max_length: 3.0
       max_planning_time: 2.0
       lookup_table_size: 20.0
+      lattice_filepath: "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/ackermann/output.json"
       cache_obstacle_heuristic: true
+      allow_reverse_expansion: true
+      smoother:
+        tolerance: 1.0e-10
+        max_iterations: 1000
+        w_data: 0.2
+        w_smooth: 0.3
+        do_refinement: true
 
 behavior_server:
   ros__parameters:
@@ -213,9 +229,9 @@ velocity_smoother:
     smoothing_frequency: 25.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.24, 0.0, 0.70]
-    min_velocity: [0.0, 0.0, -0.70]
-    max_accel: [0.30, 0.0, 0.80]
-    max_decel: [-0.35, 0.0, -0.80]
+    max_velocity: [0.22, 0.0, 0.60]
+    min_velocity: [-0.16, 0.0, -0.60]
+    max_accel: [0.28, 0.0, 0.70]
+    max_decel: [-0.35, 0.0, -0.75]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 0.8

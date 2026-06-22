@@ -9,6 +9,14 @@
       <real_time_update_rate>1000</real_time_update_rate>
     </physics>
 
+    <gui fullscreen="0">
+      <camera name="overview_camera">
+        <pose>-2.0 -13.5 17.0 0.0 0.95 1.20</pose>
+        <view_controller>orbit</view_controller>
+        <projection_type>perspective</projection_type>
+      </camera>
+    </gui>
+
     
         <model name="aws_robomaker_warehouse_ShelfF_01_001">
         <include>

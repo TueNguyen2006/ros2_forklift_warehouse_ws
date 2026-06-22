@@ -2,12 +2,21 @@
 set -eo pipefail
 
 WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ARTIFACT_ROOT="${ARTIFACT_ROOT:-${HOME}/ros2_forklift_warehouse_artifacts}"
-INSTALL_BASE="${INSTALL_BASE:-${ARTIFACT_ROOT}/install}"
+INSTALL_BASE="${INSTALL_BASE:-${WORKSPACE_DIR}/install}"
 
 source /opt/ros/humble/setup.bash
 source /usr/share/gazebo/setup.sh
 source "${INSTALL_BASE}/setup.bash"
 set -u
 
-ros2 launch forklift_nav_bringup warehouse_nav_realistic.launch.py
+if pgrep -x gzserver >/dev/null 2>&1; then
+  echo "Gazebo is already running."
+  echo "Close the existing Gazebo/launch first, or run:"
+  echo "  pkill -f gzserver; pkill -f gzclient; pkill -f rviz2"
+  exit 1
+fi
+
+ros2 launch forklift_nav_bringup warehouse_nav_realistic.launch.py \
+  use_amcl:=false \
+  use_initial_pose_publisher:=false \
+  "$@"
