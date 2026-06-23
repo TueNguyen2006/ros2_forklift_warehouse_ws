@@ -22,9 +22,9 @@ ros2 launch forklift_nav_bringup warehouse_nav_lattice_v2.launch.py \
   rviz:=true \
   use_amcl:=false \
   use_initial_pose_publisher:=false \
-  world:="${BRINGUP_DIR}/worlds/wide_open_warehouse.world" \
-  map:="${BRINGUP_DIR}/maps/warehouse_map_wide.yaml" \
-  spawn_x:=0.0 \
-  spawn_y:=-8.0 \
+  world:="${BRINGUP_DIR}/worlds/small_warehouse_open_top.world" \
+  map:="${BRINGUP_DIR}/maps/warehouse_map.yaml" \
+  spawn_x:=-2.3 \
+  spawn_y:=-2.3 \
   spawn_yaw:=1.57 \
   "$@"

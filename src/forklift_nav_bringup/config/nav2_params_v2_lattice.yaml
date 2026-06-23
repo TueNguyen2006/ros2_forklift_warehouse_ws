@@ -80,32 +80,33 @@ controller_server:
     # Version 2: Lattice planner with reverse-capable path following.
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.22
+      # Aggressive speed experiment: roughly 3-4x the original v2 cruise speed.
+      desired_linear_vel: 0.375
       # The Gazebo planar model is contact-constrained and becomes intermittent
       # below roughly 0.08 m/s.  Keeping final-approach and regulated speeds
       # above that threshold prevents a valid path from stalling just outside
       # the goal tolerance while RPP is still publishing commands.
-      min_approach_linear_velocity: 0.10
-      lookahead_dist: 0.75
-      min_lookahead_dist: 0.35
-      max_lookahead_dist: 1.10
-      lookahead_time: 1.40
-      rotate_to_heading_angular_vel: 0.35
+      min_approach_linear_velocity: 0.15
+      lookahead_dist: 1.60
+      min_lookahead_dist: 0.80
+      max_lookahead_dist: 2.30
+      lookahead_time: 1.60
+      rotate_to_heading_angular_vel: 0.80
       transform_tolerance: 0.30
       use_velocity_scaled_lookahead_dist: True
-      approach_velocity_scaling_dist: 0.90
-      max_allowed_time_to_collision_up_to_carrot: 1.00
+      approach_velocity_scaling_dist: 1.80
+      max_allowed_time_to_collision_up_to_carrot: 1.50
       use_collision_detection: True
       use_regulated_linear_velocity_scaling: True
       use_cost_regulated_linear_velocity_scaling: True
-      cost_scaling_dist: 0.55
+      cost_scaling_dist: 0.90
       cost_scaling_gain: 0.80
       inflation_cost_scaling_factor: 2.8
-      regulated_linear_scaling_min_radius: 1.10
-      regulated_linear_scaling_min_speed: 0.10
+      regulated_linear_scaling_min_radius: 2.00
+      regulated_linear_scaling_min_speed: 0.15
       use_rotate_to_heading: False
       allow_reversing: True
-      max_angular_accel: 0.60
+      max_angular_accel: 1.50
       max_robot_pose_search_dist: 10.0
       use_interpolation: True
 
@@ -226,12 +227,12 @@ waypoint_follower:
 velocity_smoother:
   ros__parameters:
     use_sim_time: True
-    smoothing_frequency: 25.0
+    smoothing_frequency: 30.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.22, 0.0, 0.60]
-    min_velocity: [-0.16, 0.0, -0.60]
-    max_accel: [0.28, 0.0, 0.70]
-    max_decel: [-0.35, 0.0, -0.75]
+    max_velocity: [0.40, 0.0, 0.75]
+    min_velocity: [-0.275, 0.0, -0.75]
+    max_accel: [0.475, 0.0, 0.90]
+    max_decel: [-0.55, 0.0, -1.00]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 0.8
