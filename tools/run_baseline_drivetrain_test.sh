@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ARTIFACT_ROOT="${ARTIFACT_ROOT:-${HOME}/ros2_forklift_warehouse_artifacts}"
-INSTALL_BASE="${INSTALL_BASE:-${ARTIFACT_ROOT}/install}"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 BRINGUP_DIR="${WORKSPACE_DIR}/src/forklift_nav_bringup"
 LOG_FILE="${LOG_FILE:-/tmp/baseline_drivetrain_test.log}"
 
-source /opt/ros/humble/setup.bash
-source /usr/share/gazebo/setup.sh
-source "${INSTALL_BASE}/setup.bash"
+source_workspace_environment
 set -u
 
 cleanup() {

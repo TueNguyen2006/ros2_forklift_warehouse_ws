@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INSTALL_BASE="${INSTALL_BASE:-${WORKSPACE_DIR}/install}"
-
-source /opt/ros/humble/setup.bash
-source /usr/share/gazebo/setup.sh
-source "${INSTALL_BASE}/setup.bash"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+source_workspace_environment
 set -u
 
 if pgrep -x gzserver >/dev/null 2>&1; then

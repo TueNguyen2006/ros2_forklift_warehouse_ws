@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INSTALL_BASE="${INSTALL_BASE:-${WORKSPACE_DIR}/install}"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 BRINGUP_DIR="${WORKSPACE_DIR}/src/forklift_nav_bringup"
 LOG_FILE="${LOG_FILE:-/tmp/lattice_v2_smoke_launch.log}"
 RESULT_DIR="${RESULT_DIR:-/tmp/lattice_v2_smoke_results}"
 
-source /opt/ros/humble/setup.bash
-source /usr/share/gazebo/setup.sh
-source "${INSTALL_BASE}/setup.bash"
+source_workspace_environment
 set -u
 
 if pgrep -x gzserver >/dev/null 2>&1; then

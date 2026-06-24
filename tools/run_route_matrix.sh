@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ARTIFACT_ROOT="${ARTIFACT_ROOT:-${HOME}/ros2_forklift_warehouse_artifacts}"
-INSTALL_BASE="${INSTALL_BASE:-${ARTIFACT_ROOT}/install}"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
-source /opt/ros/humble/setup.bash
-source "${INSTALL_BASE}/setup.bash"
+source_workspace_environment
 set -u
 
 ros2 run forklift_safety nav_matrix_runner \

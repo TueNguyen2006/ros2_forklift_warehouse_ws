@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ARTIFACT_ROOT="${ARTIFACT_ROOT:-${HOME}/ros2_forklift_warehouse_artifacts}"
-INSTALL_BASE="${INSTALL_BASE:-${ARTIFACT_ROOT}/install}"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 BRINGUP_DIR="${WORKSPACE_DIR}/src/forklift_nav_bringup"
 
 SPAWN_X="${SPAWN_X:--2.3}"
@@ -16,9 +14,7 @@ GOAL_YAW="${GOAL_YAW:-1.57}"
 LOG_FILE="${LOG_FILE:-/tmp/baseline_smoke_test.log}"
 RESULT_FILE="${RESULT_FILE:-/tmp/baseline_smoke_result.json}"
 
-source /opt/ros/humble/setup.bash
-source /usr/share/gazebo/setup.sh
-source "${INSTALL_BASE}/setup.bash"
+source_workspace_environment
 set -u
 
 rm -f "${LOG_FILE}" "${RESULT_FILE}"

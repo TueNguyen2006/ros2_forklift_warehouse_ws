@@ -30,6 +30,13 @@ BASE_COLLISION_Z_OFFSET = 0.68
 BASE_COLLISION_MASS = 1450.0
 BASE_INERTIAL_Z_OFFSET = 0.34
 NAV_BASE_OFFSET_X = 0.55
+RGB_CAMERA_UPDATE_RATE = 12
+RGB_CAMERA_WIDTH = 640
+RGB_CAMERA_HEIGHT = 480
+DEPTH_CAMERA_UPDATE_RATE = 8
+DEPTH_CAMERA_WIDTH = 640
+DEPTH_CAMERA_HEIGHT = 480
+DEPTH_CAMERA_STABLE_UPDATE_RATE = 6
 # GazeboRosPlanarMove applies angular velocity about the model center of mass,
 # while Nav2 tracks base_footprint.  base_link is NAV_BASE_OFFSET_X behind
 # base_footprint, so placing its inertial origin this far forward makes the
@@ -333,13 +340,13 @@ def _add_top_camera_suite(root: ElementTree.Element) -> None:
     )
     ElementTree.SubElement(rgb_sensor, "pose").text = "0 0 0 0 0 0"
     ElementTree.SubElement(rgb_sensor, "visualize").text = "false"
-    ElementTree.SubElement(rgb_sensor, "update_rate").text = "15"
+    ElementTree.SubElement(rgb_sensor, "update_rate").text = str(RGB_CAMERA_UPDATE_RATE)
     rgb_camera = ElementTree.SubElement(rgb_sensor, "camera")
     ElementTree.SubElement(rgb_camera, "horizontal_fov").text = "1.089"
     rgb_image = ElementTree.SubElement(rgb_camera, "image")
     ElementTree.SubElement(rgb_image, "format").text = "R8G8B8"
-    ElementTree.SubElement(rgb_image, "width").text = "640"
-    ElementTree.SubElement(rgb_image, "height").text = "480"
+    ElementTree.SubElement(rgb_image, "width").text = str(RGB_CAMERA_WIDTH)
+    ElementTree.SubElement(rgb_image, "height").text = str(RGB_CAMERA_HEIGHT)
     rgb_clip = ElementTree.SubElement(rgb_camera, "clip")
     ElementTree.SubElement(rgb_clip, "near").text = "0.05"
     ElementTree.SubElement(rgb_clip, "far").text = "12.0"
@@ -363,13 +370,15 @@ def _add_top_camera_suite(root: ElementTree.Element) -> None:
     )
     ElementTree.SubElement(depth_sensor, "pose").text = "0 0 0 0 0 0"
     ElementTree.SubElement(depth_sensor, "visualize").text = "false"
-    ElementTree.SubElement(depth_sensor, "update_rate").text = "10"
+    ElementTree.SubElement(depth_sensor, "update_rate").text = str(
+        DEPTH_CAMERA_STABLE_UPDATE_RATE
+    )
     depth_camera = ElementTree.SubElement(depth_sensor, "camera")
     ElementTree.SubElement(depth_camera, "horizontal_fov").text = "1.089"
     depth_image = ElementTree.SubElement(depth_camera, "image")
     ElementTree.SubElement(depth_image, "format").text = "B8G8R8"
-    ElementTree.SubElement(depth_image, "width").text = "640"
-    ElementTree.SubElement(depth_image, "height").text = "480"
+    ElementTree.SubElement(depth_image, "width").text = str(DEPTH_CAMERA_WIDTH)
+    ElementTree.SubElement(depth_image, "height").text = str(DEPTH_CAMERA_HEIGHT)
     depth_clip = ElementTree.SubElement(depth_camera, "clip")
     ElementTree.SubElement(depth_clip, "near").text = "0.05"
     ElementTree.SubElement(depth_clip, "far").text = "12.0"
@@ -440,6 +449,9 @@ def generate_launch_description():
     default_collision_params = os.path.join(
         bringup_dir, "config", "collision_monitor_smoke.yaml"
     )
+    default_rviz_config = os.path.join(
+        bringup_dir, "rviz", "forklift_nav_with_cameras.rviz"
+    )
 
     robot_description = _build_baseline_robot_description(forklift_robot_dir)
 
@@ -455,6 +467,7 @@ def generate_launch_description():
     stability_guard_output_topic = LaunchConfiguration(
         "stability_guard_output_topic"
     )
+    mesa_adapter_name = LaunchConfiguration("mesa_adapter_name")
     use_amcl = LaunchConfiguration("use_amcl")
     use_costmap_filters = LaunchConfiguration("use_costmap_filters")
     use_stability_guard = LaunchConfiguration("use_stability_guard")
@@ -465,6 +478,7 @@ def generate_launch_description():
     collision_monitor_file = LaunchConfiguration("collision_monitor_file")
     keepout_mask = LaunchConfiguration("keepout_mask")
     speed_mask = LaunchConfiguration("speed_mask")
+    rviz_config = LaunchConfiguration("rviz_config")
     use_initial_pose_publisher = LaunchConfiguration("use_initial_pose_publisher")
     enable_debug_logger = LaunchConfiguration("enable_debug_logger")
     debug_log_dir = LaunchConfiguration("debug_log_dir")
@@ -572,6 +586,7 @@ def generate_launch_description():
             "map": map_file,
             "keepout_mask": keepout_mask,
             "speed_mask": speed_mask,
+            "rviz_config": rviz_config,
             "load_profile": load_profile,
             "cmd_vel_in_topic": cmd_vel_in_topic,
             "cmd_vel_out_topic": cmd_vel_out_topic,
@@ -606,6 +621,8 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument("world", default_value=default_world),
             DeclareLaunchArgument("map", default_value=default_map),
+            DeclareLaunchArgument("rviz_config", default_value=default_rviz_config),
+            DeclareLaunchArgument("mesa_adapter_name", default_value="NVIDIA"),
             DeclareLaunchArgument("use_initial_pose_publisher", default_value="false"),
             DeclareLaunchArgument("enable_debug_logger", default_value="true"),
             DeclareLaunchArgument(
@@ -637,6 +654,14 @@ def generate_launch_description():
             DeclareLaunchArgument("spawn_y", default_value="-2.3"),
             DeclareLaunchArgument("spawn_z", default_value="0.05"),
             DeclareLaunchArgument("spawn_yaw", default_value="1.57"),
+            SetEnvironmentVariable(
+                "MESA_D3D12_DEFAULT_ADAPTER_NAME",
+                mesa_adapter_name,
+            ),
+            SetEnvironmentVariable(
+                "LIBGL_ALWAYS_SOFTWARE",
+                "0",
+            ),
             SetEnvironmentVariable(
                 "GAZEBO_MODEL_PATH",
                 [

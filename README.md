@@ -27,14 +27,26 @@ This workspace implements a simulation-first forklift navigation stack for `WSL 
 
 ## Quick Start
 
-1. Install ROS 2 / Nav2 / Gazebo dependencies:
+1. Clone the repository with its submodules:
 
    ```bash
+   git clone --recurse-submodules git@github.com:TueNguyen2006/ros2_forklift_warehouse_ws.git
    cd /home/tuenguyen/ros2_forklift_warehouse_ws
+   ```
+
+   If you already cloned without submodules, run:
+
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+2. Install ROS 2 / Nav2 / Gazebo dependencies:
+
+   ```bash
    ./tools/bootstrap_ros2_humble.sh
    ```
 
-2. Build the workspace:
+3. Build the workspace:
 
    ```bash
    ./tools/build_workspace.sh
@@ -42,41 +54,43 @@ This workspace implements a simulation-first forklift navigation stack for `WSL 
 
    Build, install, and log artifacts are written to `~/ros2_forklift_warehouse_artifacts` by default so the low-space Windows drive is not used for generated files.
 
-3. Run the baseline demo:
+4. Run the baseline demo:
 
    ```bash
    ./tools/run_baseline_nav.sh
    ```
 
-4. Run the rear-steer realistic model:
+5. Run the rear-steer realistic model:
 
    ```bash
    ./tools/run_realistic_nav.sh
    ```
 
-5. Run the lattice v2 navigation stack:
+6. Run the lattice v2 navigation stack:
 
    ```bash
    ./tools/run_lattice_v2_nav.sh
    ```
 
-6. Run the lattice v2 stack with Gazebo + RViz on the wide-open warehouse test scene:
+7. Run the lattice v2 stack with Gazebo + RViz on the wide-open warehouse test scene:
 
    ```bash
    ./tools/run_lattice_v2_rviz.sh
    ```
 
-7. Run the lattice v2 smoke suite:
+8. Run the lattice v2 smoke suite:
 
    ```bash
    ./tools/run_lattice_v2_smoke_test.sh
    ```
 
-8. Run the route matrix:
+9. Run the route matrix:
 
    ```bash
    ./tools/run_route_matrix.sh
    ```
+
+All `tools/run_*.sh` scripts now use the same artifact location as `./tools/build_workspace.sh`. If the install overlay is missing, they automatically trigger a workspace build first instead of failing on a missing `install/setup.bash`.
 
 ## Lattice v2 Notes
 

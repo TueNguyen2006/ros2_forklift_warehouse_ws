@@ -26,6 +26,11 @@ def generate_launch_description():
         "small_warehouse_open_top.world",
     )
     default_map = os.path.join(bringup_dir, "maps", "warehouse_map.yaml")
+    default_rviz_config = os.path.join(
+        bringup_dir,
+        "rviz",
+        "forklift_nav_with_cameras.rviz",
+    )
     effective_gui = PythonExpression(
         [
             "'false' if '",
@@ -56,6 +61,8 @@ def generate_launch_description():
             DeclareLaunchArgument("load_profile", default_value="EMPTY"),
             DeclareLaunchArgument("world", default_value=default_world),
             DeclareLaunchArgument("map", default_value=default_map),
+            DeclareLaunchArgument("rviz_config", default_value=default_rviz_config),
+            DeclareLaunchArgument("mesa_adapter_name", default_value="NVIDIA"),
             DeclareLaunchArgument("spawn_x", default_value="-2.3"),
             DeclareLaunchArgument("spawn_y", default_value="-2.3"),
             DeclareLaunchArgument("spawn_z", default_value="0.05"),
@@ -76,6 +83,8 @@ def generate_launch_description():
                     "load_profile": LaunchConfiguration("load_profile"),
                     "world": LaunchConfiguration("world"),
                     "map": LaunchConfiguration("map"),
+                    "rviz_config": LaunchConfiguration("rviz_config"),
+                    "mesa_adapter_name": LaunchConfiguration("mesa_adapter_name"),
                     "spawn_x": LaunchConfiguration("spawn_x"),
                     "spawn_y": LaunchConfiguration("spawn_y"),
                     "spawn_z": LaunchConfiguration("spawn_z"),

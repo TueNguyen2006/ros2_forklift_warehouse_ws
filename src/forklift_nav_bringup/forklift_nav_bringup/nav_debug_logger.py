@@ -27,6 +27,12 @@ def point_distance(ax: float, ay: float, bx: float, by: float) -> float:
     return math.hypot(ax - bx, ay - by)
 
 
+def point_distance_sq(ax: float, ay: float, bx: float, by: float) -> float:
+    dx = ax - bx
+    dy = ay - by
+    return dx * dx + dy * dy
+
+
 class NavDebugLogger(Node):
     def __init__(self) -> None:
         super().__init__("nav_debug_logger")
@@ -35,6 +41,7 @@ class NavDebugLogger(Node):
         self.declare_parameter("log_prefix", "baseline_nav")
         self.declare_parameter("sample_period_sec", 0.25)
         self.declare_parameter("status_period_sec", 1.0)
+        self.declare_parameter("flush_interval_sec", 1.0)
         self.declare_parameter("console_status", True)
         self.declare_parameter("odom_topic", "/odom")
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
@@ -49,6 +56,10 @@ class NavDebugLogger(Node):
         log_prefix = str(self.get_parameter("log_prefix").value)
         sample_period_sec = float(self.get_parameter("sample_period_sec").value)
         self.status_period_sec = max(float(self.get_parameter("status_period_sec").value), 0.2)
+        self.flush_interval_sec = max(
+            float(self.get_parameter("flush_interval_sec").value),
+            0.2,
+        )
         self.console_status = bool(self.get_parameter("console_status").value)
         self.odom_topic = str(self.get_parameter("odom_topic").value)
         self.cmd_vel_topic = str(self.get_parameter("cmd_vel_topic").value)
@@ -77,6 +88,7 @@ class NavDebugLogger(Node):
         self.last_plan_stamp_sec: Optional[float] = None
         self.plan_update_count = 0
         self.last_status_time_sec = 0.0
+        self.last_flush_time_sec = 0.0
         self.tf_warning_keys = set()
 
         self.create_subscription(Odometry, self.odom_topic, self._odom_cb, 20)
@@ -108,14 +120,19 @@ class NavDebugLogger(Node):
     def _now_sec(self) -> float:
         return self.get_clock().now().nanoseconds / 1e9
 
-    def _write_event(self, event_type: str, payload: dict) -> None:
+    def _flush_log(self) -> None:
+        self.log_handle.flush()
+        self.last_flush_time_sec = self._now_sec()
+
+    def _write_event(self, event_type: str, payload: dict, *, flush: bool = False) -> None:
         record = {
             "event": event_type,
             "stamp": self._ros_time(),
             **payload,
         }
         self.log_handle.write(json.dumps(record, ensure_ascii=True) + "\n")
-        self.log_handle.flush()
+        if flush:
+            self._flush_log()
 
     def _odom_cb(self, msg: Odometry) -> None:
         self.last_odom = msg
@@ -139,6 +156,7 @@ class NavDebugLogger(Node):
                     "yaw": quaternion_to_yaw(msg.pose.orientation),
                 },
             },
+            flush=True,
         )
 
     def _plan_cb(self, msg: NavPath) -> None:
@@ -183,7 +201,7 @@ class NavDebugLogger(Node):
                 },
             }
         self.last_plan_summary = summary
-        self._write_event("plan", summary)
+        self._write_event("plan", summary, flush=True)
 
     def _compute_tracking(self, robot_pose: Optional[dict]) -> Optional[dict]:
         if robot_pose is None or not self.last_plan_points:
@@ -202,7 +220,7 @@ class NavDebugLogger(Node):
 
         nearest_index = min(
             range(len(self.last_plan_points)),
-            key=lambda idx: point_distance(
+            key=lambda idx: point_distance_sq(
                 rx,
                 ry,
                 self.last_plan_points[idx]["x"],
@@ -210,7 +228,7 @@ class NavDebugLogger(Node):
             ),
         )
         nearest = self.last_plan_points[nearest_index]
-        cross_track_error = point_distance(rx, ry, nearest["x"], nearest["y"])
+        cross_track_error = math.sqrt(point_distance_sq(rx, ry, nearest["x"], nearest["y"]))
 
         if nearest_index + 1 < len(self.last_plan_points):
             next_point = self.last_plan_points[nearest_index + 1]
@@ -274,6 +292,7 @@ class NavDebugLogger(Node):
                         "source_frame": source_frame,
                         "message": str(exc),
                     },
+                    flush=True,
                 )
             return None
 
@@ -365,8 +384,11 @@ class NavDebugLogger(Node):
             self.get_logger().info(" | ".join(status_parts))
             self.last_status_time_sec = now_sec
 
+        if now_sec - self.last_flush_time_sec >= self.flush_interval_sec:
+            self._flush_log()
+
     def destroy_node(self) -> bool:
-        self._write_event("logger_stopped", {})
+        self._write_event("logger_stopped", {}, flush=True)
         self.log_handle.close()
         return super().destroy_node()
 

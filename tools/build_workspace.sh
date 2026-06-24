@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ARTIFACT_ROOT="${ARTIFACT_ROOT:-${HOME}/ros2_forklift_warehouse_artifacts}"
-BUILD_BASE="${BUILD_BASE:-${ARTIFACT_ROOT}/build}"
-INSTALL_BASE="${INSTALL_BASE:-${ARTIFACT_ROOT}/install}"
-LOG_BASE="${LOG_BASE:-${ARTIFACT_ROOT}/log}"
-
-source /opt/ros/humble/setup.bash
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+ensure_required_sources
+source_ros_environment
 set -u
 
 cd "${WORKSPACE_DIR}"

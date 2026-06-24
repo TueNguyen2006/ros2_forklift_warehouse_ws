@@ -95,12 +95,14 @@ class StabilityGuard(Node):
 
         self.global_cfg, self.profiles = self._load_profile_config(self.profile_config_path)
         self.log_timestamps: Dict[str, float] = {}
+        self.active_profile = self.profiles.get(self.load_profile, self.profiles["EMPTY"])
 
         self.current_speed = 0.0
         self.current_yaw_rate = 0.0
         self.current_roll = 0.0
         self.current_pitch = 0.0
         self.lift_height = 0.0
+        self.lift_joint_index = None
         self.last_output = Twist()
         self.last_cmd_time = None
 
@@ -117,6 +119,7 @@ class StabilityGuard(Node):
                 f"Profile '{self.load_profile}' not found, falling back to EMPTY."
             )
             self.load_profile = "EMPTY"
+            self.active_profile = self.profiles["EMPTY"]
 
     def _load_profile_config(self, path: str) -> Tuple[Dict, Dict]:
         if not path:
@@ -160,9 +163,13 @@ class StabilityGuard(Node):
         self.current_pitch = pitch
 
     def joint_state_callback(self, msg: JointState) -> None:
-        if self.lift_joint_name not in msg.name:
-            return
-        index = msg.name.index(self.lift_joint_name)
+        index = self.lift_joint_index
+        if index is None:
+            try:
+                index = msg.name.index(self.lift_joint_name)
+            except ValueError:
+                return
+            self.lift_joint_index = index
         if index < len(msg.position):
             self.lift_height = max(0.0, msg.position[index])
 
@@ -174,7 +181,7 @@ class StabilityGuard(Node):
             self.log_timestamps[key] = now
 
     def _get_profile(self) -> Dict:
-        return self.profiles.get(self.load_profile, self.profiles["EMPTY"])
+        return self.active_profile
 
     def _height_velocity_factor(self, profile: Dict) -> float:
         penalty_height = max(
