@@ -36,6 +36,7 @@ setup(
             "controller_odom_bridge = forklift_nav_bringup.controller_odom_bridge:main",
             "initial_pose_publisher = forklift_nav_bringup.initial_pose_publisher:main",
             "nav_debug_logger = forklift_nav_bringup.nav_debug_logger:main",
+            "ensure_world_map = forklift_nav_bringup.world_map_generator:main",
         ],
     },
 )

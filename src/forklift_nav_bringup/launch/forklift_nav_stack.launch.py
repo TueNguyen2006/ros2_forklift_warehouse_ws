@@ -5,7 +5,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -26,8 +26,14 @@ def generate_launch_description():
     load_profile = LaunchConfiguration("load_profile")
     cmd_vel_in_topic = LaunchConfiguration("cmd_vel_in_topic")
     cmd_vel_out_topic = LaunchConfiguration("cmd_vel_out_topic")
+    velocity_smoother_input_topic = LaunchConfiguration(
+        "velocity_smoother_input_topic"
+    )
     velocity_smoother_output_topic = LaunchConfiguration(
         "velocity_smoother_output_topic"
+    )
+    velocity_smoother_passthrough_topic = LaunchConfiguration(
+        "velocity_smoother_passthrough_topic"
     )
     stability_guard_output_topic = LaunchConfiguration(
         "stability_guard_output_topic"
@@ -39,6 +45,13 @@ def generate_launch_description():
     use_costmap_filters = LaunchConfiguration("use_costmap_filters")
     use_stability_guard = LaunchConfiguration("use_stability_guard")
     use_collision_monitor = LaunchConfiguration("use_collision_monitor")
+    publish_map_to_odom_tf = LaunchConfiguration("publish_map_to_odom_tf")
+    map_to_odom_x = LaunchConfiguration("map_to_odom_x")
+    map_to_odom_y = LaunchConfiguration("map_to_odom_y")
+    map_to_odom_z = LaunchConfiguration("map_to_odom_z")
+    map_to_odom_roll = LaunchConfiguration("map_to_odom_roll")
+    map_to_odom_pitch = LaunchConfiguration("map_to_odom_pitch")
+    map_to_odom_yaw = LaunchConfiguration("map_to_odom_yaw")
 
     return LaunchDescription(
         [
@@ -47,6 +60,13 @@ def generate_launch_description():
             DeclareLaunchArgument("rviz", default_value="true"),
             DeclareLaunchArgument("use_amcl", default_value="false"),
             DeclareLaunchArgument("use_costmap_filters", default_value="false"),
+            DeclareLaunchArgument("publish_map_to_odom_tf", default_value="true"),
+            DeclareLaunchArgument("map_to_odom_x", default_value="0.0"),
+            DeclareLaunchArgument("map_to_odom_y", default_value="0.0"),
+            DeclareLaunchArgument("map_to_odom_z", default_value="0.0"),
+            DeclareLaunchArgument("map_to_odom_roll", default_value="0.0"),
+            DeclareLaunchArgument("map_to_odom_pitch", default_value="0.0"),
+            DeclareLaunchArgument("map_to_odom_yaw", default_value="0.0"),
             DeclareLaunchArgument(
                 "params_file",
                 default_value=os.path.join(bringup_dir, "config", "nav2_params.yaml"),
@@ -79,8 +99,16 @@ def generate_launch_description():
             DeclareLaunchArgument("cmd_vel_in_topic", default_value="cmd_vel_stability"),
             DeclareLaunchArgument("cmd_vel_out_topic", default_value="/cmd_vel"),
             DeclareLaunchArgument(
+                "velocity_smoother_input_topic",
+                default_value="cmd_vel_nav",
+            ),
+            DeclareLaunchArgument(
                 "velocity_smoother_output_topic",
                 default_value="cmd_vel_smoothed",
+            ),
+            DeclareLaunchArgument(
+                "velocity_smoother_passthrough_topic",
+                default_value="/cmd_vel",
             ),
             DeclareLaunchArgument(
                 "stability_guard_output_topic",
@@ -131,8 +159,35 @@ def generate_launch_description():
                 executable="static_transform_publisher",
                 name="map_to_odom_broadcaster",
                 output="screen",
-                arguments=["0", "0", "0", "0", "0", "0", "map", "odom"],
-                condition=UnlessCondition(use_amcl),
+                arguments=[
+                    "--x",
+                    map_to_odom_x,
+                    "--y",
+                    map_to_odom_y,
+                    "--z",
+                    map_to_odom_z,
+                    "--roll",
+                    map_to_odom_roll,
+                    "--pitch",
+                    map_to_odom_pitch,
+                    "--yaw",
+                    map_to_odom_yaw,
+                    "--frame-id",
+                    "map",
+                    "--child-frame-id",
+                    "odom",
+                ],
+                condition=IfCondition(
+                    PythonExpression(
+                        [
+                            "'",
+                            use_amcl,
+                            "' == 'false' and '",
+                            publish_map_to_odom_tf,
+                            "' == 'true'",
+                        ]
+                    )
+                ),
             ),
             Node(
                 package="nav2_map_server",
@@ -247,8 +302,25 @@ def generate_launch_description():
                 output="screen",
                 parameters=[params_file],
                 remappings=[
-                    ("cmd_vel", "cmd_vel_nav"),
-                    ("cmd_vel_smoothed", velocity_smoother_output_topic),
+                    ("cmd_vel", velocity_smoother_input_topic),
+                    (
+                        "cmd_vel_smoothed",
+                        PythonExpression(
+                            [
+                                "\"",
+                                velocity_smoother_output_topic,
+                                "\" if \"",
+                                use_stability_guard,
+                                "\" == \"true\" else (\"",
+                                cmd_vel_in_topic,
+                                "\" if \"",
+                                use_collision_monitor,
+                                "\" == \"true\" else \"",
+                                velocity_smoother_passthrough_topic,
+                                "\")",
+                            ]
+                        ),
+                    ),
                 ],
             ),
             Node(

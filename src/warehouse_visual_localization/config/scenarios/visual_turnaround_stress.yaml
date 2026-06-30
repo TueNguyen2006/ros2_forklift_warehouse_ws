@@ -1,0 +1,20 @@
+name: visual_turnaround_stress
+description: >
+  Stress route for camera-based localization: approach from the open floor,
+  turn into the east-side narrow aisle, then finish with the robot facing
+  the opposite direction inside the aisle.
+
+initial_pose:
+  x: -4.8
+  y: -8.2
+  yaw: 1.57
+
+segments:
+  - name: east_aisle_turnaround
+    type: navigate_through_poses
+    poses:
+      - {name: "southwest_staging", x: -4.6, y: -6.5, yaw: 1.57}
+      - {name: "center_south", x: -1.0, y: -4.5, yaw: 0.0}
+      - {name: "east_return_cross", x: 1.2, y: -3.8, yaw: 0.0}
+      - {name: "east_south_aisle_low", x: 4.7, y: -2.2, yaw: 1.57}
+      - {name: "east_south_aisle_mid_turnaround", x: 4.7, y: 1.0, yaw: -1.57}

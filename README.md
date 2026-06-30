@@ -1,116 +1,157 @@
-# ROS 2 Forklift Warehouse Navigation Workspace
+# ROS 2 Forklift Warehouse Workspace
 
-This workspace implements a simulation-first forklift navigation stack for `WSL Ubuntu-22.04` using `ROS 2 Humble`, `Nav2`, and `Gazebo Classic 11`.
+Workspace nay duoc chot de demo theo mot luong chay on dinh:
 
-## Workspace Layout
+`Gazebo + RViz + camera mo phong + visual odom + sim_wheel_odom EKF + Nav2`
 
-- `src/third_party/ROS2-Forklift-Simulation`
-  Forklift upstream repository kept intact for the baseline vehicle model and custom Gazebo collision plugin.
-- `src/third_party/aws-robomaker-small-warehouse-world`
-  Warehouse upstream repository kept intact as the original source of world, map, and model assets.
+Entry point chinh de chay va test thu cong la:
+
+`./tools/run_visual_nav_manual.sh`
+
+README nay chi huong dan cho luong chay do.
+
+## Moi truong muc tieu
+
+- `WSL Ubuntu-22.04`
+- `ROS 2 Humble`
+- `Gazebo Classic 11`
+- `Nav2`
+
+## Cau truc lien quan
+
+- `src/warehouse_visual_localization`
+  Pipeline visual navigation dang duoc dung.
 - `src/forklift_nav_bringup`
-  Baseline and realistic simulation launch files, Nav2 configs, behavior trees, maps, and costmap filter masks.
-- `src/forklift_safety`
-  `stability_guard`, synthetic IMU node for the baseline model, and the route-matrix runner.
-- `src/forklift_description_realistic`
-  Rear-steer forklift description using `ackermann_steering_controller`.
-- `tools`
-  Bootstrap, build, launch, and route-test helper scripts for WSL.
+  World, map, Nav2 stack va cac launch/phu tro can cho manual visual mode.
+- `src/gazebo_nav_goal_tool`
+  Nut `Set Nav Goal` trong Gazebo.
+- `tools/source_visual_localization_env.sh`
+  Source ROS overlay va setup WSLg/OpenGL.
+- `tools/run_visual_nav_manual.sh`
+  Lenh chay chinh de demo.
 
-## Recommended Environment
+## Cai dat
 
-- Ubuntu `22.04`
-- ROS 2 `Humble`
-- Nav2 `Humble`
-- Gazebo Classic `11`
-- `colcon`, `rosdep`, `vcstool`
-
-## Quick Start
-
-1. Clone the repository with its submodules:
-
-   ```bash
-   git clone --recurse-submodules git@github.com:TueNguyen2006/ros2_forklift_warehouse_ws.git
-   cd /home/tuenguyen/ros2_forklift_warehouse_ws
-   ```
-
-   If you already cloned without submodules, run:
-
-   ```bash
-   git submodule update --init --recursive
-   ```
-
-2. Install ROS 2 / Nav2 / Gazebo dependencies:
-
-   ```bash
-   ./tools/bootstrap_ros2_humble.sh
-   ```
-
-3. Build the workspace:
-
-   ```bash
-   ./tools/build_workspace.sh
-   ```
-
-   Build, install, and log artifacts are written to `~/ros2_forklift_warehouse_artifacts` by default so the low-space Windows drive is not used for generated files.
-
-4. Run the baseline demo:
-
-   ```bash
-   ./tools/run_baseline_nav.sh
-   ```
-
-5. Run the rear-steer realistic model:
-
-   ```bash
-   ./tools/run_realistic_nav.sh
-   ```
-
-6. Run the lattice v2 navigation stack:
-
-   ```bash
-   ./tools/run_lattice_v2_nav.sh
-   ```
-
-7. Run the lattice v2 stack with Gazebo + RViz on the wide-open warehouse test scene:
-
-   ```bash
-   ./tools/run_lattice_v2_rviz.sh
-   ```
-
-8. Run the lattice v2 smoke suite:
-
-   ```bash
-   ./tools/run_lattice_v2_smoke_test.sh
-   ```
-
-9. Run the route matrix:
-
-   ```bash
-   ./tools/run_route_matrix.sh
-   ```
-
-All `tools/run_*.sh` scripts now use the same artifact location as `./tools/build_workspace.sh`. If the install overlay is missing, they automatically trigger a workspace build first instead of failing on a missing `install/setup.bash`.
-
-## Lattice v2 Notes
-
-The `warehouse_nav_lattice_v2.launch.py` bringup is the current reverse-capable Nav2 configuration for the baseline forklift proxy. It uses:
-
-- `nav2_smac_planner/SmacPlannerLattice`
-- `nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController`
-- reverse-capable motion primitives
-- the wide-open warehouse map/world for deterministic smoke testing
-
-Recommended commands:
+Clone repo va submodule:
 
 ```bash
-./tools/run_lattice_v2_nav.sh
-./tools/run_lattice_v2_rviz.sh
-./tools/run_lattice_v2_smoke_test.sh
+git clone --recurse-submodules git@github.com:TueNguyen2006/ros2_forklift_warehouse_ws.git
+cd /home/tuenguyen/ros2_forklift_warehouse_ws
 ```
 
-## Notes
+Neu clone truoc do chua co submodule:
 
-- The `aws-robomaker-small-warehouse-world` package is not built as a ROS 2 package. Its assets are vendored into `forklift_nav_bringup` for runtime use.
-- The `forklift_gym_env` package from the upstream forklift repository is intentionally skipped during build.
-- The upstream forklift repository does not declare a license in `package.xml` / `setup.py`. Treat it as an internal prototype dependency until its redistribution status is clarified.
+```bash
+git submodule update --init --recursive
+```
+
+Bootstrap phu thuoc:
+
+```bash
+./tools/bootstrap_ros2_humble.sh
+```
+
+Build workspace:
+
+```bash
+./tools/build_workspace.sh
+```
+
+Artifact build/install mac dinh nam o:
+
+`/home/tuenguyen/ros2_forklift_warehouse_artifacts`
+
+## Cach chay chinh
+
+```bash
+cd /home/tuenguyen/ros2_forklift_warehouse_ws
+source /home/tuenguyen/ros2_forklift_warehouse_ws/tools/source_visual_localization_env.sh
+./tools/run_visual_nav_manual.sh
+```
+
+Script nay se:
+
+- dong `gzserver`, `gzclient`, `rviz2` cu neu con treo
+- mo `Gazebo`
+- mo `RViz`
+- spawn forklift o mode `drive_model:=planar`
+- chay `RGB-D visual odometry`
+- fuse `visual odom` voi `/sim_wheel_odom` bang `EKF`
+- dua pose cho Nav2 qua chuoi TF `map -> odom -> base_footprint`
+
+## Pipeline pose hien tai
+
+Pose runtime cua forklift khong doc truc tiep vi tri chinh xac tu simulator.
+
+Pipeline dang duoc dung:
+
+`cmd_vel -> planar_move -> than xe di chuyen trong Gazebo`
+
+`than xe di chuyen -> /sim_wheel_odom`
+
+`RGB-D camera -> RTAB-Map RGB-D odometry -> visual odom`
+
+`sim_wheel_odom + visual odom -> EKF -> /odom`
+
+`Nav2 doc TF / odom da fuse de plan va follow path`
+
+## Cach test thu cong
+
+Sau khi chay script:
+
+1. Doi `Gazebo` va `RViz` len day du.
+2. Trong `Gazebo`, bam `Set Nav Goal`.
+3. Click xuong san de gui goal.
+4. Quan sat:
+   - path planner trong `RViz`
+   - robot di chuyen trong `Gazebo`
+   - camera RGB/depth/stereo trong `RViz`
+
+Ban cung co the gui goal bang `Nav2 Goal` trong RViz, nhung luong test khuyen nghi hien tai la goal tu Gazebo.
+
+## Topic va frame quan trong
+
+Camera:
+
+- `/rgb_camera/image_raw`
+- `/depth_camera/depth/image_raw`
+- `/stereo_left_camera/image_raw`
+- `/stereo_right_camera/image_raw`
+
+Odometry / TF:
+
+- `/sim_wheel_odom`
+- `/visual_odom`
+- `/odometry/filtered`
+- `map -> odom -> base_footprint`
+
+Navigation:
+
+- `/plan`
+- `/cmd_vel`
+- `/goal_pose`
+
+## Ghi chu WSLg
+
+Neu script env bao:
+
+`/mnt/shared_memory is missing`
+
+thi Gazebo/RViz co the bi `COPY MODE`, thumbnail hong, hoac man hinh trang. Cach xu ly:
+
+```powershell
+wsl --shutdown
+```
+
+Mo lai `Ubuntu-22.04`, source lai env va chay lai script.
+
+## Pham vi README nay
+
+README nay co y chi tap trung vao mode dang on dinh nhat:
+
+- `run_visual_nav_manual.sh`
+- `drive_model:=planar`
+- `localization:=false`
+- `use_wheel_odom_fusion:=true`
+
+Nhung script/launch khac trong repo duoc giu lai cho nghien cuu va debug, nhung khong phai duong chay chinh trong tai lieu nay.

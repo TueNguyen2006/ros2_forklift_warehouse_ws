@@ -7,14 +7,18 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
+    LogInfo,
+    OpaqueFunction,
     RegisterEventHandler,
     SetEnvironmentVariable,
+    SetLaunchConfiguration,
 )
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
+from forklift_nav_bringup.world_map_generator import default_output_root, ensure_world_map
 import xacro
 
 
@@ -30,13 +34,23 @@ BASE_COLLISION_Z_OFFSET = 0.68
 BASE_COLLISION_MASS = 1450.0
 BASE_INERTIAL_Z_OFFSET = 0.34
 NAV_BASE_OFFSET_X = 0.55
-RGB_CAMERA_UPDATE_RATE = 12
-RGB_CAMERA_WIDTH = 640
-RGB_CAMERA_HEIGHT = 480
-DEPTH_CAMERA_UPDATE_RATE = 8
-DEPTH_CAMERA_WIDTH = 640
-DEPTH_CAMERA_HEIGHT = 480
-DEPTH_CAMERA_STABLE_UPDATE_RATE = 6
+# Gazebo Classic on WSLg struggles when four camera sensors run at high rate.
+# Prioritize the RGB-D depth stream used by RTAB-Map and keep the standalone
+# RGB / stereo sensors as lower-rate debug feeds.
+RGB_CAMERA_UPDATE_RATE = 6
+RGB_CAMERA_WIDTH = 320
+RGB_CAMERA_HEIGHT = 240
+DEPTH_CAMERA_WIDTH = 424
+DEPTH_CAMERA_HEIGHT = 240
+DEPTH_CAMERA_STABLE_UPDATE_RATE = 10
+STEREO_CAMERA_UPDATE_RATE = 6
+STEREO_CAMERA_WIDTH = 320
+STEREO_CAMERA_HEIGHT = 240
+STEREO_BASELINE = 0.12
+# Mount the simulated cameras fully outside the forklift body so the RGB-D and
+# stereo views are not occluded by the red chassis / mast geometry.
+CAMERA_MOUNT_X = 2.12
+CAMERA_MOUNT_Z = 2.28
 # GazeboRosPlanarMove applies angular velocity about the model center of mass,
 # while Nav2 tracks base_footprint.  base_link is NAV_BASE_OFFSET_X behind
 # base_footprint, so placing its inertial origin this far forward makes the
@@ -44,6 +58,46 @@ DEPTH_CAMERA_STABLE_UPDATE_RATE = 6
 # inertial origin is left near base_link, every yaw correction also translates
 # base_footprint and the path follower diverges from otherwise valid paths.
 BASE_INERTIAL_X_OFFSET = NAV_BASE_OFFSET_X
+
+
+def _as_bool(value: str) -> bool:
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _configure_runtime_map_assets(context, *_, **__):
+    if not _as_bool(LaunchConfiguration("auto_generate_map").perform(context)):
+        return [
+            SetLaunchConfiguration(
+                "resolved_map",
+                LaunchConfiguration("map").perform(context),
+            ),
+            SetLaunchConfiguration(
+                "resolved_keepout_mask",
+                LaunchConfiguration("keepout_mask").perform(context),
+            ),
+            SetLaunchConfiguration(
+                "resolved_speed_mask",
+                LaunchConfiguration("speed_mask").perform(context),
+            ),
+        ]
+
+    artifacts = ensure_world_map(
+        LaunchConfiguration("world").perform(context),
+        output_root=LaunchConfiguration("generated_map_root").perform(context),
+    )
+    return [
+        SetLaunchConfiguration("resolved_map", str(artifacts.map_yaml)),
+        SetLaunchConfiguration("resolved_keepout_mask", str(artifacts.keepout_yaml)),
+        SetLaunchConfiguration("resolved_speed_mask", str(artifacts.speed_yaml)),
+        LogInfo(
+            msg=(
+                "Using generated map assets: "
+                f"map={artifacts.map_yaml} "
+                f"keepout={artifacts.keepout_yaml} "
+                f"speed={artifacts.speed_yaml}"
+            )
+        ),
+    ]
 
 
 def _set_or_create_origin(
@@ -265,16 +319,40 @@ def _disable_lidar_visualization(root: ElementTree.Element) -> None:
 
 
 def _remove_existing_camera_assets(root: ElementTree.Element) -> None:
+    camera_link_names = {
+        "camera_link",
+        "camera_link_optical",
+        "rgb_camera_link",
+        "rgb_camera_optical_link",
+        "depth_camera_link",
+        "depth_camera_optical_link",
+        "stereo_left_camera_link",
+        "stereo_left_camera_optical_link",
+        "stereo_right_camera_link",
+        "stereo_right_camera_optical_link",
+    }
+    camera_joint_names = {
+        "camera_joint",
+        "camera_optical_joint",
+        "rgb_camera_joint",
+        "rgb_camera_optical_joint",
+        "depth_camera_joint",
+        "depth_camera_optical_joint",
+        "stereo_left_camera_joint",
+        "stereo_left_camera_optical_joint",
+        "stereo_right_camera_joint",
+        "stereo_right_camera_optical_joint",
+    }
     for gazebo_element in list(root.findall("gazebo")):
-        if gazebo_element.attrib.get("reference") == "camera_link":
+        if gazebo_element.attrib.get("reference") in camera_link_names:
             root.remove(gazebo_element)
 
     for joint in list(root.findall("joint")):
-        if joint.attrib.get("name") in {"camera_joint", "camera_optical_joint"}:
+        if joint.attrib.get("name") in camera_joint_names:
             root.remove(joint)
 
     for link in list(root.findall("link")):
-        if link.attrib.get("name") in {"camera_link", "camera_link_optical"}:
+        if link.attrib.get("name") in camera_link_names:
             root.remove(link)
 
 
@@ -298,17 +376,70 @@ def _add_top_camera_suite(root: ElementTree.Element) -> None:
         ElementTree.SubElement(joint, "origin", {"xyz": xyz, "rpy": rpy})
         root.append(joint)
 
+    def add_camera_sensor(
+        *,
+        link_name: str,
+        sensor_name: str,
+        sensor_type: str,
+        plugin_name: str,
+        camera_name: str,
+        frame_name: str,
+        width: int,
+        height: int,
+        update_rate: int,
+        image_format: str,
+        near_clip: str = "0.05",
+        far_clip: str = "12.0",
+        min_depth: str | None = None,
+        max_depth: str | None = None,
+    ) -> None:
+        gazebo = ElementTree.Element("gazebo", {"reference": link_name})
+        sensor = ElementTree.SubElement(
+            gazebo,
+            "sensor",
+            {"name": sensor_name, "type": sensor_type},
+        )
+        ElementTree.SubElement(sensor, "pose").text = "0 0 0 0 0 0"
+        ElementTree.SubElement(sensor, "always_on").text = "true"
+        ElementTree.SubElement(sensor, "visualize").text = "false"
+        ElementTree.SubElement(sensor, "update_rate").text = str(update_rate)
+        camera = ElementTree.SubElement(sensor, "camera")
+        ElementTree.SubElement(camera, "horizontal_fov").text = "1.089"
+        image = ElementTree.SubElement(camera, "image")
+        ElementTree.SubElement(image, "format").text = image_format
+        ElementTree.SubElement(image, "width").text = str(width)
+        ElementTree.SubElement(image, "height").text = str(height)
+        clip = ElementTree.SubElement(camera, "clip")
+        ElementTree.SubElement(clip, "near").text = near_clip
+        ElementTree.SubElement(clip, "far").text = far_clip
+        plugin = ElementTree.SubElement(
+            sensor,
+            "plugin",
+            {"name": plugin_name, "filename": "libgazebo_ros_camera.so"},
+        )
+        ElementTree.SubElement(plugin, "frame_name").text = frame_name
+        ElementTree.SubElement(plugin, "camera_name").text = camera_name
+        if min_depth is not None:
+            ElementTree.SubElement(plugin, "min_depth").text = min_depth
+        if max_depth is not None:
+            ElementTree.SubElement(plugin, "max_depth").text = max_depth
+        root.append(gazebo)
+
     add_link("rgb_camera_link")
     add_link("rgb_camera_optical_link")
     add_link("depth_camera_link")
     add_link("depth_camera_optical_link")
+    add_link("stereo_left_camera_link")
+    add_link("stereo_left_camera_optical_link")
+    add_link("stereo_right_camera_link")
+    add_link("stereo_right_camera_optical_link")
 
     add_fixed_joint(
         "rgb_camera_joint",
         "chassis_top_link",
         "rgb_camera_link",
-        "0.58 0.0 1.52",
-        "0 0 1.57079632679",
+        f"{CAMERA_MOUNT_X} 0.0 {CAMERA_MOUNT_Z}",
+        "0 0 0",
     )
     add_fixed_joint(
         "rgb_camera_optical_joint",
@@ -321,8 +452,8 @@ def _add_top_camera_suite(root: ElementTree.Element) -> None:
         "depth_camera_joint",
         "chassis_top_link",
         "depth_camera_link",
-        "0.52 0.0 1.42",
-        "0 0 1.57079632679",
+        f"{CAMERA_MOUNT_X + 0.03} 0.0 {CAMERA_MOUNT_Z - 0.08}",
+        "0 0 0",
     )
     add_fixed_joint(
         "depth_camera_optical_joint",
@@ -331,72 +462,85 @@ def _add_top_camera_suite(root: ElementTree.Element) -> None:
         "0 0 0",
         "-1.57079632679 0 -1.57079632679",
     )
+    add_fixed_joint(
+        "stereo_left_camera_joint",
+        "chassis_top_link",
+        "stereo_left_camera_link",
+        f"{CAMERA_MOUNT_X - 0.02} {STEREO_BASELINE / 2.0} {CAMERA_MOUNT_Z - 0.02}",
+        "0 0 0",
+    )
+    add_fixed_joint(
+        "stereo_left_camera_optical_joint",
+        "stereo_left_camera_link",
+        "stereo_left_camera_optical_link",
+        "0 0 0",
+        "-1.57079632679 0 -1.57079632679",
+    )
+    add_fixed_joint(
+        "stereo_right_camera_joint",
+        "chassis_top_link",
+        "stereo_right_camera_link",
+        f"{CAMERA_MOUNT_X - 0.02} -{STEREO_BASELINE / 2.0} {CAMERA_MOUNT_Z - 0.02}",
+        "0 0 0",
+    )
+    add_fixed_joint(
+        "stereo_right_camera_optical_joint",
+        "stereo_right_camera_link",
+        "stereo_right_camera_optical_link",
+        "0 0 0",
+        "-1.57079632679 0 -1.57079632679",
+    )
 
-    rgb_gazebo = ElementTree.Element("gazebo", {"reference": "rgb_camera_link"})
-    rgb_sensor = ElementTree.SubElement(
-        rgb_gazebo,
-        "sensor",
-        {"name": "rgb_camera_sensor", "type": "camera"},
+    add_camera_sensor(
+        link_name="rgb_camera_link",
+        sensor_name="rgb_camera_sensor",
+        sensor_type="camera",
+        plugin_name="rgb_camera_controller",
+        camera_name="rgb_camera",
+        frame_name="rgb_camera_optical_link",
+        width=RGB_CAMERA_WIDTH,
+        height=RGB_CAMERA_HEIGHT,
+        update_rate=RGB_CAMERA_UPDATE_RATE,
+        image_format="R8G8B8",
     )
-    ElementTree.SubElement(rgb_sensor, "pose").text = "0 0 0 0 0 0"
-    ElementTree.SubElement(rgb_sensor, "visualize").text = "false"
-    ElementTree.SubElement(rgb_sensor, "update_rate").text = str(RGB_CAMERA_UPDATE_RATE)
-    rgb_camera = ElementTree.SubElement(rgb_sensor, "camera")
-    ElementTree.SubElement(rgb_camera, "horizontal_fov").text = "1.089"
-    rgb_image = ElementTree.SubElement(rgb_camera, "image")
-    ElementTree.SubElement(rgb_image, "format").text = "R8G8B8"
-    ElementTree.SubElement(rgb_image, "width").text = str(RGB_CAMERA_WIDTH)
-    ElementTree.SubElement(rgb_image, "height").text = str(RGB_CAMERA_HEIGHT)
-    rgb_clip = ElementTree.SubElement(rgb_camera, "clip")
-    ElementTree.SubElement(rgb_clip, "near").text = "0.05"
-    ElementTree.SubElement(rgb_clip, "far").text = "12.0"
-    rgb_plugin = ElementTree.SubElement(
-        rgb_sensor,
-        "plugin",
-        {
-            "name": "rgb_camera_controller",
-            "filename": "libgazebo_ros_camera.so",
-        },
+    add_camera_sensor(
+        link_name="depth_camera_link",
+        sensor_name="depth_camera_sensor",
+        sensor_type="depth",
+        plugin_name="depth_camera_controller",
+        camera_name="depth_camera",
+        frame_name="depth_camera_optical_link",
+        width=DEPTH_CAMERA_WIDTH,
+        height=DEPTH_CAMERA_HEIGHT,
+        update_rate=DEPTH_CAMERA_STABLE_UPDATE_RATE,
+        image_format="R8G8B8",
+        min_depth="0.10",
+        max_depth="12.0",
     )
-    ElementTree.SubElement(rgb_plugin, "frame_name").text = "rgb_camera_optical_link"
-    ElementTree.SubElement(rgb_plugin, "camera_name").text = "rgb_camera"
-    root.append(rgb_gazebo)
-
-    depth_gazebo = ElementTree.Element("gazebo", {"reference": "depth_camera_link"})
-    depth_sensor = ElementTree.SubElement(
-        depth_gazebo,
-        "sensor",
-        {"name": "depth_camera_sensor", "type": "depth"},
+    add_camera_sensor(
+        link_name="stereo_left_camera_link",
+        sensor_name="stereo_left_camera_sensor",
+        sensor_type="camera",
+        plugin_name="stereo_left_camera_controller",
+        camera_name="stereo_left_camera",
+        frame_name="stereo_left_camera_optical_link",
+        width=STEREO_CAMERA_WIDTH,
+        height=STEREO_CAMERA_HEIGHT,
+        update_rate=STEREO_CAMERA_UPDATE_RATE,
+        image_format="R8G8B8",
     )
-    ElementTree.SubElement(depth_sensor, "pose").text = "0 0 0 0 0 0"
-    ElementTree.SubElement(depth_sensor, "visualize").text = "false"
-    ElementTree.SubElement(depth_sensor, "update_rate").text = str(
-        DEPTH_CAMERA_STABLE_UPDATE_RATE
+    add_camera_sensor(
+        link_name="stereo_right_camera_link",
+        sensor_name="stereo_right_camera_sensor",
+        sensor_type="camera",
+        plugin_name="stereo_right_camera_controller",
+        camera_name="stereo_right_camera",
+        frame_name="stereo_right_camera_optical_link",
+        width=STEREO_CAMERA_WIDTH,
+        height=STEREO_CAMERA_HEIGHT,
+        update_rate=STEREO_CAMERA_UPDATE_RATE,
+        image_format="R8G8B8",
     )
-    depth_camera = ElementTree.SubElement(depth_sensor, "camera")
-    ElementTree.SubElement(depth_camera, "horizontal_fov").text = "1.089"
-    depth_image = ElementTree.SubElement(depth_camera, "image")
-    ElementTree.SubElement(depth_image, "format").text = "B8G8R8"
-    ElementTree.SubElement(depth_image, "width").text = str(DEPTH_CAMERA_WIDTH)
-    ElementTree.SubElement(depth_image, "height").text = str(DEPTH_CAMERA_HEIGHT)
-    depth_clip = ElementTree.SubElement(depth_camera, "clip")
-    ElementTree.SubElement(depth_clip, "near").text = "0.05"
-    ElementTree.SubElement(depth_clip, "far").text = "12.0"
-    depth_plugin = ElementTree.SubElement(
-        depth_sensor,
-        "plugin",
-        {
-            "name": "depth_camera_controller",
-            "filename": "libgazebo_ros_camera.so",
-        },
-    )
-    ElementTree.SubElement(depth_plugin, "frame_name").text = (
-        "depth_camera_optical_link"
-    )
-    ElementTree.SubElement(depth_plugin, "camera_name").text = "depth_camera"
-    ElementTree.SubElement(depth_plugin, "min_depth").text = "0.10"
-    ElementTree.SubElement(depth_plugin, "max_depth").text = "12.0"
-    root.append(depth_gazebo)
 
 
 def _build_baseline_robot_description(forklift_robot_dir: str) -> str:
@@ -438,6 +582,8 @@ def generate_launch_description():
     bringup_dir = get_package_share_directory("forklift_nav_bringup")
     gazebo_ros_dir = get_package_share_directory("gazebo_ros")
     forklift_robot_dir = get_package_share_directory("forklift_robot")
+    gazebo_goal_tool_prefix = get_package_prefix("gazebo_nav_goal_tool")
+    gazebo_goal_tool_plugin_dir = os.path.join(gazebo_goal_tool_prefix, "lib")
     ros_gazebo_plugins_prefix = get_package_prefix("gazebo_plugins")
     ros_gazebo_plugin_dir = os.path.join(ros_gazebo_plugins_prefix, "lib")
 
@@ -486,12 +632,18 @@ def generate_launch_description():
     spawn_y = LaunchConfiguration("spawn_y")
     spawn_z = LaunchConfiguration("spawn_z")
     spawn_yaw = LaunchConfiguration("spawn_yaw")
+    libgl_software = PythonExpression(["'1' if '", gui, "' == 'false' else '0'"])
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(gazebo_ros_dir, "launch", "gazebo.launch.py")
         ),
-        launch_arguments={"world": world_file, "gui": gui, "verbose": "true"}.items(),
+        launch_arguments={
+            "world": world_file,
+            "gui": gui,
+            "verbose": "true",
+            "extra_gazebo_args": "-slibgazebo_ros_state.so",
+        }.items(),
     )
 
     robot_state_publisher = Node(
@@ -515,6 +667,8 @@ def generate_launch_description():
             "forklift_baseline",
             "-topic",
             "robot_description",
+            "-timeout",
+            "120.0",
             "-x",
             spawn_x,
             "-y",
@@ -583,9 +737,9 @@ def generate_launch_description():
             "rviz": rviz,
             "params_file": params_file,
             "collision_monitor_file": collision_monitor_file,
-            "map": map_file,
-            "keepout_mask": keepout_mask,
-            "speed_mask": speed_mask,
+            "map": LaunchConfiguration("resolved_map"),
+            "keepout_mask": LaunchConfiguration("resolved_keepout_mask"),
+            "speed_mask": LaunchConfiguration("resolved_speed_mask"),
             "rviz_config": rviz_config,
             "load_profile": load_profile,
             "cmd_vel_in_topic": cmd_vel_in_topic,
@@ -621,6 +775,11 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument("world", default_value=default_world),
             DeclareLaunchArgument("map", default_value=default_map),
+            DeclareLaunchArgument("auto_generate_map", default_value="true"),
+            DeclareLaunchArgument(
+                "generated_map_root",
+                default_value=str(default_output_root()),
+            ),
             DeclareLaunchArgument("rviz_config", default_value=default_rviz_config),
             DeclareLaunchArgument("mesa_adapter_name", default_value="NVIDIA"),
             DeclareLaunchArgument("use_initial_pose_publisher", default_value="false"),
@@ -660,7 +819,7 @@ def generate_launch_description():
             ),
             SetEnvironmentVariable(
                 "LIBGL_ALWAYS_SOFTWARE",
-                "0",
+                libgl_software,
             ),
             SetEnvironmentVariable(
                 "GAZEBO_MODEL_PATH",
@@ -675,6 +834,8 @@ def generate_launch_description():
             SetEnvironmentVariable(
                 "GAZEBO_PLUGIN_PATH",
                 [
+                    gazebo_goal_tool_plugin_dir,
+                    ":",
                     ros_gazebo_plugin_dir,
                     ":",
                     GAZEBO_SYSTEM_PLUGIN_DIR,
@@ -693,6 +854,8 @@ def generate_launch_description():
             SetEnvironmentVariable(
                 "LD_LIBRARY_PATH",
                 [
+                    gazebo_goal_tool_plugin_dir,
+                    ":",
                     ros_gazebo_plugin_dir,
                     ":",
                     GAZEBO_SYSTEM_PLUGIN_DIR,
@@ -708,6 +871,7 @@ def generate_launch_description():
                     EnvironmentVariable("OGRE_RESOURCE_PATH", default_value=""),
                 ],
             ),
+            OpaqueFunction(function=_configure_runtime_map_assets),
             robot_state_publisher,
             gazebo,
             spawn_entity,

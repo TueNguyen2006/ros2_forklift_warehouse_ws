@@ -36,6 +36,7 @@
   <exec_depend>forklift_robot</exec_depend>
   <exec_depend>forklift_safety</exec_depend>
   <exec_depend>forklift_description_realistic</exec_depend>
+  <exec_depend>gazebo_nav_goal_tool</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

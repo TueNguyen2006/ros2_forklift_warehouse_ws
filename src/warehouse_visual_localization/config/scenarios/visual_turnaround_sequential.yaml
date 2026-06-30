@@ -1,0 +1,29 @@
+name: visual_turnaround_sequential
+description: >
+  Sequential stress route for visual localization: turn across the warehouse,
+  enter the east-side aisle, then finish deeper in the aisle while facing the
+  opposite direction.
+
+initial_pose:
+  x: -2.3
+  y: -2.3
+  yaw: 1.57
+
+segments:
+  - name: approach_cross
+    type: navigate_to_pose
+    x: 1.2
+    y: -3.8
+    yaw: 0.0
+
+  - name: enter_narrow_aisle
+    type: navigate_to_pose
+    x: 4.7
+    y: -2.2
+    yaw: 1.57
+
+  - name: aisle_turnaround_finish
+    type: navigate_to_pose
+    x: 4.7
+    y: 1.0
+    yaw: -1.57

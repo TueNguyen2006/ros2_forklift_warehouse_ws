@@ -1,0 +1,45 @@
+rgbd_odometry:
+  ros__parameters:
+    use_sim_time: true
+    frame_id: base_footprint
+    odom_frame_id: odom
+    publish_tf: true
+    publish_null_when_lost: false
+    approx_sync: true
+    approx_sync_max_interval: 0.04
+    sync_queue_size: 40
+    qos_image: 0
+    qos_camera_info: 0
+    subscribe_rgb: true
+    subscribe_depth: true
+    subscribe_rgbd: false
+    wait_imu_to_init: false
+
+rtabmap:
+  ros__parameters:
+    use_sim_time: true
+    frame_id: base_footprint
+    odom_frame_id: odom
+    map_frame_id: map
+    publish_tf: true
+    approx_sync: true
+    approx_sync_max_interval: 0.04
+    sync_queue_size: 40
+    qos_image: 0
+    qos_camera_info: 0
+    subscribe_rgb: true
+    subscribe_depth: true
+    subscribe_rgbd: false
+    subscribe_scan: false
+    subscribe_scan_cloud: false
+    detection_rate: 6.0
+
+rtabmap_viz:
+  ros__parameters:
+    use_sim_time: true
+    frame_id: base_footprint
+    subscribe_rgb: true
+    subscribe_depth: true
+    subscribe_rgbd: false
+    subscribe_scan: false
+    queue_size: 10

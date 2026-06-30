@@ -1,0 +1,47 @@
+name: visual_turnaround_generated_map
+description: >
+  Route aligned with the auto-generated small-warehouse map: climb to the
+  upper cross-aisle, enter the right-side narrow aisle, drive down into the
+  aisle, then finish with a 180-degree turnaround.
+
+initial_pose:
+  x: -2.3
+  y: -2.3
+  yaw: 1.57
+
+segments:
+  - name: approach_upper_cross
+    type: navigate_to_pose
+    x: 0.8
+    y: 2.5
+    yaw: 0.0
+
+  - name: stage_cross_approach
+    type: navigate_to_pose
+    x: 4.8
+    y: 2.5
+    yaw: 0.0
+
+  - name: align_at_aisle_entry
+    type: navigate_to_pose
+    x: 5.8
+    y: 2.5
+    yaw: 0.0
+
+  - name: turn_into_right_aisle
+    type: navigate_to_pose
+    x: 6.0
+    y: 1.6
+    yaw: -1.57
+
+  - name: descend_right_aisle
+    type: navigate_to_pose
+    x: 6.0
+    y: -2.2
+    yaw: -1.57
+
+  - name: turnaround_in_aisle
+    type: navigate_to_pose
+    x: 6.0
+    y: 0.8
+    yaw: 1.57

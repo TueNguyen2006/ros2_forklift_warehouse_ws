@@ -9,7 +9,15 @@
       <real_time_update_rate>1000</real_time_update_rate>
     </physics>
 
+    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+      <ros>
+        <namespace>/gazebo</namespace>
+      </ros>
+      <update_rate>30.0</update_rate>
+    </plugin>
+
     <gui fullscreen="0">
+      <plugin name="gazebo_nav_goal_gui" filename="libgazebo_nav_goal_gui_plugin.so"/>
       <camera name="overview_camera">
         <pose>-2.0 -13.5 17.0 0.0 0.95 1.20</pose>
         <view_controller>orbit</view_controller>

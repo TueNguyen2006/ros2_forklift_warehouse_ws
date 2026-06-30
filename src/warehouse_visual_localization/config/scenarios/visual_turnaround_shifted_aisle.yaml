@@ -1,0 +1,34 @@
+name: visual_turnaround_shifted_aisle
+description: >
+  Stress route for visual navigation that approaches the east-side aisle from a
+  safer offset, then attempts an in-aisle turnaround.
+
+initial_pose:
+  x: -2.3
+  y: -2.3
+  yaw: 1.57
+
+segments:
+  - name: approach_cross
+    type: navigate_to_pose
+    x: 1.2
+    y: -3.8
+    yaw: 0.0
+
+  - name: enter_shifted_aisle
+    type: navigate_to_pose
+    x: 4.2
+    y: -2.2
+    yaw: -1.57
+
+  - name: move_up_shifted_aisle
+    type: navigate_to_pose
+    x: 4.2
+    y: 1.0
+    yaw: -1.57
+
+  - name: turnaround_shifted_aisle
+    type: navigate_to_pose
+    x: 4.2
+    y: -0.2
+    yaw: 1.57
