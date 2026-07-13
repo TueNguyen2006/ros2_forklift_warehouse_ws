@@ -5,9 +5,8 @@ from ament_index_python.packages import get_package_share_directory
 from forklift_nav_bringup.world_map_generator import default_output_root
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo
-from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
@@ -16,15 +15,10 @@ def generate_launch_description():
     default_world = os.path.join(bringup_dir, "worlds", "small_warehouse_open_top.world")
     default_map = os.path.join(bringup_dir, "maps", "warehouse_map.yaml")
     default_rviz = os.path.join(visual_dir, "config", "nav2_visualization.rviz")
-    truth_nav_launch = os.path.join(
-        bringup_dir,
-        "launch",
-        "warehouse_nav_realistic_truth.launch.py",
-    )
-    sim_only_launch = os.path.join(
+    realistic_launch = os.path.join(
         visual_dir,
         "launch",
-        "rear_steer_sim_only.launch.py",
+        "rear_steer_truth_mode.launch.py",
     )
 
     return LaunchDescription(
@@ -33,7 +27,6 @@ def generate_launch_description():
             DeclareLaunchArgument("gui", default_value="true"),
             DeclareLaunchArgument("rviz", default_value="true"),
             DeclareLaunchArgument("headless", default_value="false"),
-            DeclareLaunchArgument("realistic_mode", default_value="truth_nav"),
             DeclareLaunchArgument("world", default_value=default_world),
             DeclareLaunchArgument("map", default_value=default_map),
             DeclareLaunchArgument("rviz_config", default_value=default_rviz),
@@ -53,25 +46,13 @@ def generate_launch_description():
             DeclareLaunchArgument("use_collision_monitor", default_value="false"),
             DeclareLaunchArgument("enable_debug_logger", default_value="false"),
             LogInfo(
-                msg=PythonExpression(
-                    [
-                        "'warehouse_nav_realistic.launch.py mode=' + '",
-                        LaunchConfiguration("realistic_mode"),
-                        "'",
-                    ]
+                msg=(
+                    "Launching rear-steer truth-nav mode: Nav2 will receive a static truth "
+                    "map->odom TF for baseline comparison/debug."
                 )
             ),
             IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(truth_nav_launch),
-                condition=IfCondition(
-                    PythonExpression(
-                        [
-                            "'true' if '",
-                            LaunchConfiguration("realistic_mode"),
-                            "' == 'truth_nav' else 'false'",
-                        ]
-                    )
-                ),
+                PythonLaunchDescriptionSource(realistic_launch),
                 launch_arguments={
                     "use_sim_time": LaunchConfiguration("use_sim_time"),
                     "gui": LaunchConfiguration("gui"),
@@ -92,33 +73,6 @@ def generate_launch_description():
                     "use_collision_monitor": LaunchConfiguration(
                         "use_collision_monitor"
                     ),
-                }.items(),
-            ),
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(sim_only_launch),
-                condition=IfCondition(
-                    PythonExpression(
-                        [
-                            "'true' if '",
-                            LaunchConfiguration("realistic_mode"),
-                            "' == 'sim_only' else 'false'",
-                        ]
-                    )
-                ),
-                launch_arguments={
-                    "use_sim_time": LaunchConfiguration("use_sim_time"),
-                    "gui": LaunchConfiguration("gui"),
-                    "rviz": LaunchConfiguration("rviz"),
-                    "headless": LaunchConfiguration("headless"),
-                    "world": LaunchConfiguration("world"),
-                    "map": LaunchConfiguration("map"),
-                    "rviz_config": LaunchConfiguration("rviz_config"),
-                    "auto_generate_map": LaunchConfiguration("auto_generate_map"),
-                    "generated_map_root": LaunchConfiguration("generated_map_root"),
-                    "spawn_x": LaunchConfiguration("spawn_x"),
-                    "spawn_y": LaunchConfiguration("spawn_y"),
-                    "spawn_z": LaunchConfiguration("spawn_z"),
-                    "spawn_yaw": LaunchConfiguration("spawn_yaw"),
                 }.items(),
             ),
         ]

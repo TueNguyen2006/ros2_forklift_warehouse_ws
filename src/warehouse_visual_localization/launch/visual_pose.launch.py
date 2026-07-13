@@ -220,6 +220,13 @@ def generate_launch_description():
                 "pose_source": pose_source,
                 "consumer_name": "visual_pose",
                 "require_map_frame": ParameterValue(localization, value_type=bool),
+                "required_odom_topics_csv": PythonExpression(
+                    [
+                        "'/visual_odom' if '",
+                        use_wheel_odom_fusion,
+                        "' == 'true' else '/odom'",
+                    ]
+                ),
             }
         ],
     )

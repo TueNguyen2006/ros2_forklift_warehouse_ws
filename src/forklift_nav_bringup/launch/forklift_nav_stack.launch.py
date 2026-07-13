@@ -368,6 +368,7 @@ def generate_launch_description():
                     {
                         "use_sim_time": use_sim_time,
                         "autostart": autostart,
+                        "service_timeout": 20.0,
                         "node_names": ["collision_monitor"],
                     }
                 ],
@@ -382,6 +383,7 @@ def generate_launch_description():
                     {
                         "use_sim_time": use_sim_time,
                         "autostart": autostart,
+                        "service_timeout": 20.0,
                         "node_names": ["map_server", "amcl"],
                     }
                 ],
@@ -396,6 +398,7 @@ def generate_launch_description():
                     {
                         "use_sim_time": use_sim_time,
                         "autostart": autostart,
+                        "service_timeout": 20.0,
                         "node_names": ["map_server"],
                     }
                 ],
@@ -410,6 +413,7 @@ def generate_launch_description():
                     {
                         "use_sim_time": use_sim_time,
                         "autostart": autostart,
+                        "service_timeout": 20.0,
                         "node_names": [
                             "keepout_filter_mask_server",
                             "keepout_costmap_filter_info_server",
@@ -428,6 +432,7 @@ def generate_launch_description():
                     {
                         "use_sim_time": use_sim_time,
                         "autostart": autostart,
+                        "service_timeout": 20.0,
                         "node_names": [
                             "controller_server",
                             "planner_server",

@@ -110,6 +110,14 @@ Visualization Manager:
           Value: true
         rgb_camera_optical_link:
           Value: true
+        stereo_left_camera_link:
+          Value: true
+        stereo_left_camera_optical_link:
+          Value: true
+        stereo_right_camera_link:
+          Value: true
+        stereo_right_camera_optical_link:
+          Value: true
         right_fork_link:
           Value: true
         right_wheel:
@@ -133,6 +141,12 @@ Visualization Manager:
                         {}
                     rgb_camera_link:
                       rgb_camera_optical_link:
+                        {}
+                    stereo_left_camera_link:
+                      stereo_left_camera_optical_link:
+                        {}
+                    stereo_right_camera_link:
+                      stereo_right_camera_optical_link:
                         {}
                   laser_frame_link:
                     {}

@@ -2,6 +2,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+source_workspace_environment
+rebuild_selected_packages_if_sources_newer \
+  forklift_nav_bringup \
+  warehouse_visual_localization \
+  forklift_description_realistic
 source "${SCRIPT_DIR}/source_visual_localization_env.sh"
 
 pkill -x gzserver || true

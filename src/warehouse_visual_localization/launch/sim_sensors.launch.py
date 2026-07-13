@@ -228,11 +228,19 @@ def generate_launch_description():
             RegisterEventHandler(
                 OnProcessExit(
                     target_action=rear_steer_spawn_entity,
-                    on_exit=[
-                        joint_state_broadcaster,
-                        rear_steer_controller,
-                        lift_position_controller,
-                    ],
+                    on_exit=[rear_steer_controller],
+                )
+            ),
+            RegisterEventHandler(
+                OnProcessExit(
+                    target_action=rear_steer_controller,
+                    on_exit=[joint_state_broadcaster],
+                )
+            ),
+            RegisterEventHandler(
+                OnProcessExit(
+                    target_action=joint_state_broadcaster,
+                    on_exit=[lift_position_controller],
                 )
             ),
             rviz_node,

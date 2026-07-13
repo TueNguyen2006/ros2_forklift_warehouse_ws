@@ -39,6 +39,14 @@ echo "POINTS INFO"
 ros2 topic info /depth_camera/points || true
 
 echo
+echo "STEREO LEFT INFO"
+ros2 topic info /stereo_left_camera/image_raw || true
+
+echo
+echo "STEREO RIGHT INFO"
+ros2 topic info /stereo_right_camera/image_raw || true
+
+echo
 echo "RGB SAMPLE"
 timeout 8s ros2 topic echo /rgb_camera/camera_info --once 2>/dev/null | sed -n '1,12p' || true
 

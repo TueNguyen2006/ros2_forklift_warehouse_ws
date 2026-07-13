@@ -36,3 +36,18 @@ lift_position_controller:
   ros__parameters:
     joints: [fork_base_joint]
     interface_name: position
+
+gazebo_ros2_control:
+  ros__parameters:
+    pid_gains:
+      velocity:
+        front_left_wheel_joint:
+          kp: 15.0
+          ki: 0.0
+          kd: 0.5
+          max_integral_error: 1000.0
+        front_right_wheel_joint:
+          kp: 15.0
+          ki: 0.0
+          kd: 0.5
+          max_integral_error: 1000.0

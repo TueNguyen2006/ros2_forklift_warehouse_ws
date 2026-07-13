@@ -33,6 +33,45 @@ source_ros_environment() {
   fi
 }
 
+rebuild_selected_packages_if_sources_newer() {
+  local stale_packages=()
+  local package_name
+
+  for package_name in "$@"; do
+    local source_dir="${WORKSPACE_DIR}/src/${package_name}"
+    local install_share_dir="${INSTALL_BASE}/${package_name}/share/${package_name}"
+
+    if [[ ! -d "${source_dir}" ]]; then
+      continue
+    fi
+
+    if [[ ! -d "${install_share_dir}" ]]; then
+      stale_packages+=("${package_name}")
+      continue
+    fi
+
+    if find "${source_dir}" -type f -newer "${install_share_dir}" -print -quit | grep -q .; then
+      stale_packages+=("${package_name}")
+    fi
+  done
+
+  if [[ ${#stale_packages[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  echo "Detected newer source files than the built overlay. Rebuilding packages:" >&2
+  printf '  - %s\n' "${stale_packages[@]}" >&2
+
+  mkdir -p "${BUILD_BASE}" "${INSTALL_BASE}" "${LOG_BASE}"
+  colcon \
+    --log-base "${LOG_BASE}" \
+    build \
+    --symlink-install \
+    --build-base "${BUILD_BASE}" \
+    --install-base "${INSTALL_BASE}" \
+    --packages-select "${stale_packages[@]}"
+}
+
 ensure_workspace_built() {
   if [[ -f "${INSTALL_BASE}/setup.bash" ]]; then
     return 0

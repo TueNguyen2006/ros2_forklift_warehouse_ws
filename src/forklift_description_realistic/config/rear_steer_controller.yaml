@@ -3,36 +3,51 @@ controller_manager:
     update_rate: 100
     use_sim_time: true
 
-    rear_steer_controller:
-      type: ackermann_steering_controller/AckermannSteeringController
+    traction_velocity_controller:
+      type: velocity_controllers/JointGroupVelocityController
+
+    rear_steering_position_controller:
+      type: position_controllers/JointGroupPositionController
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
-    lift_position_controller:
-      type: position_controllers/JointGroupPositionController
-
-rear_steer_controller:
+traction_velocity_controller:
   ros__parameters:
-    reference_timeout: 2.0
-    front_steering: false
-    open_loop: false
-    velocity_rolling_window_size: 10
-    position_feedback: false
-    use_stamped_vel: false
-    enable_odom_tf: true
-    odom_frame_id: odom
-    base_frame_id: base_link
-    publish_rate: 50.0
-    rear_wheels_names: [rear_right_steering_joint, rear_left_steering_joint]
-    front_wheels_names: [front_right_wheel_joint, front_left_wheel_joint]
-    wheelbase: 1.50
-    front_wheel_track: 0.92
-    rear_wheel_track: 0.78
-    front_wheels_radius: 0.18
-    rear_wheels_radius: 0.18
+    joints:
+      - rear_left_wheel_spin_joint
+      - rear_right_wheel_spin_joint
+    interface_name: velocity
 
-lift_position_controller:
+rear_steering_position_controller:
   ros__parameters:
-    joints: [fork_base_joint]
+    joints:
+      - rear_left_steering_joint
+      - rear_right_steering_joint
     interface_name: position
+
+gazebo_ros2_control:
+  ros__parameters:
+    pid_gains:
+      velocity:
+        rear_left_wheel_spin_joint:
+          kp: 18.0
+          ki: 0.08
+          kd: 1.2
+          max_integral_error: 1000.0
+        rear_right_wheel_spin_joint:
+          kp: 18.0
+          ki: 0.08
+          kd: 1.2
+          max_integral_error: 1000.0
+      position:
+        rear_left_steering_joint:
+          kp: 220.0
+          ki: 0.0
+          kd: 18.0
+          max_integral_error: 1000.0
+        rear_right_steering_joint:
+          kp: 220.0
+          ki: 0.0
+          kd: 18.0
+          max_integral_error: 1000.0

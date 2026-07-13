@@ -13,6 +13,7 @@ GOAL_Y="${GOAL_Y:-7.5}"
 GOAL_YAW="${GOAL_YAW:-1.57}"
 LOG_FILE="${LOG_FILE:-/tmp/baseline_wide_debug_test.log}"
 RESULT_FILE="${RESULT_FILE:-/tmp/baseline_wide_debug_result.json}"
+WAIT_BEFORE_TEST_SEC="${WAIT_BEFORE_TEST_SEC:-20}"
 
 source_workspace_environment
 set -u
@@ -56,7 +57,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-sleep 8
+sleep "${WAIT_BEFORE_TEST_SEC}"
 python3 "${WORKSPACE_DIR}/tools/nav_smoke_test.py" \
   --initial-x "${SPAWN_X}" \
   --initial-y "${SPAWN_Y}" \

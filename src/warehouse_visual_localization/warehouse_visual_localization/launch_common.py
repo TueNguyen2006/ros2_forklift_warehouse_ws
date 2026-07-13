@@ -167,12 +167,14 @@ def _ensure_visual_base_footprint(root: ElementTree.Element) -> None:
         "joint",
         {"name": "base_link_to_base_footprint", "type": "fixed"},
     )
-    ElementTree.SubElement(base_footprint_joint, "parent", {"link": "base_link"})
-    ElementTree.SubElement(base_footprint_joint, "child", {"link": "base_footprint"})
+    # Nav2 and odometry use base_footprint as the robot root on the ground plane.
+    # base_link should hang below it as the physical chassis frame, not the other way around.
+    ElementTree.SubElement(base_footprint_joint, "parent", {"link": "base_footprint"})
+    ElementTree.SubElement(base_footprint_joint, "child", {"link": "base_link"})
     ElementTree.SubElement(
         base_footprint_joint,
         "origin",
-        {"xyz": f"{NAV_BASE_OFFSET_X} 0 0", "rpy": "0 0 0"},
+        {"xyz": f"{-NAV_BASE_OFFSET_X} 0 0", "rpy": "0 0 0"},
     )
 
     root.append(base_footprint)
@@ -191,6 +193,25 @@ def _disable_rear_steer_lidar_visualization(root: ElementTree.Element) -> None:
             if visualize is None:
                 visualize = ElementTree.SubElement(sensor, "visualize")
             visualize.text = "false"
+
+
+def _lock_rear_steer_fork_carriage(root: ElementTree.Element) -> None:
+    fork_joint = root.find("./joint[@name='fork_base_joint']")
+    if fork_joint is None:
+        return
+
+    fork_joint.set("type", "fixed")
+
+    for child_name in ["axis", "limit", "dynamics"]:
+        child = fork_joint.find(child_name)
+        if child is not None:
+            fork_joint.remove(child)
+
+    ros2_control_joint = root.find("./ros2_control/joint[@name='fork_base_joint']")
+    if ros2_control_joint is not None:
+        ros2_control = root.find("./ros2_control")
+        if ros2_control is not None:
+            ros2_control.remove(ros2_control_joint)
 
 
 def _remove_existing_camera_assets(root: ElementTree.Element) -> None:
@@ -427,6 +448,8 @@ def _add_rear_steer_camera_suite(root: ElementTree.Element) -> None:
 def build_visual_rear_steer_robot_description(
     realistic_dir: str,
     controller_config_path: str,
+    *,
+    lock_forks: bool = False,
 ) -> str:
     robot_description = xacro.process_file(
         os.path.join(realistic_dir, "urdf", "rear_steer_forklift.urdf.xacro")
@@ -435,6 +458,8 @@ def build_visual_rear_steer_robot_description(
 
     _ensure_visual_base_footprint(root)
     _disable_rear_steer_lidar_visualization(root)
+    if lock_forks:
+        _lock_rear_steer_fork_carriage(root)
     _remove_existing_camera_assets(root)
     _add_rear_steer_camera_suite(root)
 
