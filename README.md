@@ -90,6 +90,134 @@ output: stable /odom for Nav2 controller and costmaps
 
 The result is much more stable path following than visual odometry alone.
 
+## Computer Vision, Visual Odometry, And SLAM
+
+Yes, this project does use computer vision. The camera part of the pipeline is
+implemented through RTAB-Map RGB-D odometry.
+
+The active visual input is:
+
+```text
+RGB image
+Depth image
+CameraInfo / calibration
+```
+
+These streams come from the simulated RGB-D camera in Gazebo. RTAB-Map then uses
+computer-vision feature tracking and RGB-D geometric registration to estimate how
+the camera moved between frames.
+
+The simplified visual-odometry loop is:
+
+```text
+RGB-D frame at time t
+    -> detect visual features / keypoints
+    -> associate features with depth
+    -> match features against previous frames / local map
+    -> estimate relative 3D camera motion
+    -> constrain motion to planar robot motion
+    -> publish /visual_odom
+```
+
+In config, this is the `rtabmap_odom/rgbd_odometry` node. Important parameters
+include:
+
+```text
+subscribe_rgb: true
+subscribe_depth: true
+Reg/Force3DoF: true
+Vis/MinInliers: 8
+Vis/MinDepth: 0.20
+Vis/MaxDepth: 8.0
+Kp/MaxFeatures: 2000
+Odom/GuessMotion: true
+```
+
+`Reg/Force3DoF` is important because the forklift is treated as a ground robot:
+the estimated visual motion should mainly be `(x, y, yaw)`, not free-flying
+camera motion.
+
+### What Is SLAM Here?
+
+Strictly speaking, the default stable demo is not running full online SLAM as the
+main source for map building. It is running:
+
+```text
+known static warehouse map
+RGB-D visual odometry
+wheel odometry
+EKF fused odometry
+Nav2 planning and control
+```
+
+So the default mode is best described as:
+
+```text
+camera-based odometry + map-based navigation
+```
+
+not:
+
+```text
+build a new map online while navigating
+```
+
+This is intentional. The current project goal is to replace simulator
+ground-truth pose with sensor-derived pose while still using the known warehouse
+map for Nav2 planning.
+
+### RTAB-Map Localization Mode
+
+The repository also contains RTAB-Map global localization support. That is the
+SLAM-family component that can use a prebuilt RTAB-Map database to estimate:
+
+```text
+map -> odom
+```
+
+When enabled, the intended chain becomes:
+
+```text
+RGB-D camera
+    -> RTAB-Map visual odometry
+    -> odom -> base_footprint
+
+prebuilt RTAB-Map database
+    -> RTAB-Map localization
+    -> map -> odom
+
+Nav2
+    -> consumes map -> odom -> base_footprint
+```
+
+This mode is controlled by:
+
+```text
+localization:=true
+```
+
+However, the stable manual demo currently keeps:
+
+```text
+localization:=false
+```
+
+That means the static warehouse occupancy map is still loaded for global
+planning, but `map -> odom` is kept simple for the demo, while the moving robot
+pose still comes from camera odometry plus wheel odometry through EKF.
+
+### Difference Between The Terms
+
+- `Computer vision`: the RGB-D image processing used to extract and match visual
+  features.
+- `Visual odometry`: the incremental camera-based motion estimate published as
+  `/visual_odom`.
+- `SLAM`: building or using a map while estimating robot pose. In this repo,
+  full RTAB-Map global localization exists as an extension, but the stable path
+  uses a known map and focuses on robust sensor-based odometry.
+- `Navigation`: Nav2 uses the estimated pose and static map to plan and follow a
+  path.
+
 ## Planner And Trajectory Following Algorithm
 
 When a navigation goal is selected, this repository does not directly drive the
