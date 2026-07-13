@@ -1,157 +1,299 @@
-# ROS 2 Forklift Warehouse Workspace
+# Camera-Based Warehouse Navigation For Forklift
 
-Workspace nay duoc chot de demo theo mot luong chay on dinh:
+This repository has one main purpose:
 
-`Gazebo + RViz + camera mo phong + visual odom + sim_wheel_odom EKF + Nav2`
+Run a forklift in a Gazebo warehouse using simulated camera and wheel-odometry
+sensors, then feed the estimated pose to Nav2 for path planning and path
+following.
 
-Entry point chinh de chay va test thu cong la:
+The main entry point is:
 
-`./tools/run_visual_nav_manual.sh`
+```bash
+bash tools/run_visual_nav_manual.sh
+```
 
-README nay chi huong dan cho luong chay do.
+## Goal
 
-## Moi truong muc tieu
+The original navigation stack worked when the robot pose came directly from the
+simulator. This project replaces that ideal ground-truth pose with a sensor-based
+pose pipeline:
 
-- `WSL Ubuntu-22.04`
-- `ROS 2 Humble`
-- `Gazebo Classic 11`
-- `Nav2`
+```text
+RGB-D camera
+    -> RTAB-Map RGB-D visual odometry
+    -> /visual_odom
 
-## Cau truc lien quan
+simulated wheel odometry
+    -> /sim_wheel_odom
 
-- `src/warehouse_visual_localization`
-  Pipeline visual navigation dang duoc dung.
-- `src/forklift_nav_bringup`
-  World, map, Nav2 stack va cac launch/phu tro can cho manual visual mode.
-- `src/gazebo_nav_goal_tool`
-  Nut `Set Nav Goal` trong Gazebo.
-- `tools/source_visual_localization_env.sh`
-  Source ROS overlay va setup WSLg/OpenGL.
+/visual_odom + /sim_wheel_odom
+    -> robot_localization EKF
+    -> /odom and TF odom -> base_footprint
+
+static warehouse map
+    -> Nav2 global planning
+
+Nav2
+    -> /visual_nav/cmd_vel_request
+    -> planar motion guard
+    -> /cmd_vel
+    -> Gazebo forklift motion
+```
+
+The navigation stack consumes the same kind of runtime interface used by a real
+robot:
+
+```text
+map -> odom -> base_footprint
+```
+
+Ground-truth simulator pose is not used as the navigation pose source in this
+visual navigation path.
+
+## Current Design
+
+The stable branch of this project intentionally uses a planar Gazebo drive model.
+The planar model keeps the focus on the localization and navigation pipeline
+instead of forklift tire/contact physics.
+
+The current algorithmic stack is:
+
+- `Gazebo Classic` simulates the warehouse, forklift body, cameras, lidar, and planar motion.
+- `RGB-D camera` provides color and depth images for visual odometry.
+- `RTAB-Map RGB-D odometry` estimates camera-based robot motion and publishes `/visual_odom`.
+- `Gazebo planar move` publishes `/sim_wheel_odom`, representing encoder-like wheel odometry from the simulated drivetrain.
+- `robot_localization EKF` fuses `/sim_wheel_odom` and `/visual_odom` into `/odom`.
+- `Nav2` plans on the static warehouse occupancy map and follows the path using the fused odometry TF.
+- `planar_motion_guard.py` smooths practical low-speed turning commands before sending `/cmd_vel` to Gazebo.
+- `gazebo_goal_bridge.py` lets a goal selected in Gazebo be sent to Nav2.
+
+## Why EKF Fusion Helps
+
+Visual odometry and wheel odometry fail in different ways.
+
+Visual odometry is useful because it observes motion from RGB-D camera data, so it
+keeps the localization pipeline camera-based instead of simulator-truth-based.
+However, visual odometry can become noisy or temporarily weak when texture,
+lighting, depth quality, or camera motion is poor.
+
+Simulated wheel odometry is smooth and high-rate. In this simulator it behaves
+like a clean encoder source from the drivetrain. It is still odometry, so it is
+not a global truth pose; it accumulates motion from the robot movement model.
+
+The EKF combines them:
+
+```text
+prediction: wheel odometry gives smooth velocity and short-term motion
+correction: visual odometry constrains camera-observed pose drift
+output: stable /odom for Nav2 controller and costmaps
+```
+
+The result is much more stable path following than visual odometry alone.
+
+## Important Files
+
 - `tools/run_visual_nav_manual.sh`
-  Lenh chay chinh de demo.
+  Main command for manual testing and demo.
 
-## Cai dat
+- `src/warehouse_visual_localization/launch/nav_with_estimated_pose.launch.py`
+  Top-level launch for the visual navigation pipeline.
 
-Clone repo va submodule:
+- `src/warehouse_visual_localization/launch/visual_pose.launch.py`
+  Starts simulated sensors, RGB-D odometry, EKF fusion, optional evaluator, and debug nodes.
+
+- `src/warehouse_visual_localization/launch/sim_sensors.launch.py`
+  Starts Gazebo, RViz, and the simulated forklift with RGB, depth, stereo, and lidar sensors.
+
+- `src/warehouse_visual_localization/launch/rgbd_odom.launch.py`
+  Starts RTAB-Map RGB-D odometry.
+
+- `src/warehouse_visual_localization/config/ekf_visual.yaml`
+  EKF configuration for fusing `/sim_wheel_odom` and `/visual_odom`.
+
+- `src/warehouse_visual_localization/config/nav2_params_visual.yaml`
+  Nav2 configuration used by this visual pipeline.
+
+- `src/forklift_nav_bringup/launch/forklift_nav_stack.launch.py`
+  Shared Nav2 bringup used by the visual pipeline.
+
+- `src/forklift_nav_bringup/worlds/small_warehouse_open_top.world`
+  Gazebo warehouse world.
+
+- `src/forklift_nav_bringup/maps/warehouse_map.yaml`
+  Static occupancy map loaded by Nav2 and RViz.
+
+## Main Topics
+
+Camera topics:
+
+```text
+/rgb_camera/image_raw
+/depth_camera/image_raw
+/depth_camera/depth/image_raw
+/depth_camera/camera_info
+/stereo_left_camera/image_raw
+/stereo_right_camera/image_raw
+```
+
+Odometry and TF:
+
+```text
+/sim_wheel_odom
+/visual_odom
+/odom
+map -> odom -> base_footprint
+```
+
+Navigation:
+
+```text
+/goal_pose
+/plan
+/visual_nav/cmd_vel_request
+/cmd_vel
+```
+
+## Requirements
+
+Target environment:
+
+- Ubuntu 22.04 under WSL
+- ROS 2 Humble
+- Gazebo Classic 11
+- Nav2
+- RTAB-Map ROS for Humble
+- robot_localization
+
+The helper scripts assume the workspace is located at:
+
+```text
+/home/tuenguyen/ros2_forklift_warehouse_ws
+```
+
+Build artifacts are written to:
+
+```text
+/home/tuenguyen/ros2_forklift_warehouse_artifacts
+```
+
+## Setup
+
+Clone with submodules:
 
 ```bash
 git clone --recurse-submodules git@github.com:TueNguyen2006/ros2_forklift_warehouse_ws.git
 cd /home/tuenguyen/ros2_forklift_warehouse_ws
 ```
 
-Neu clone truoc do chua co submodule:
+If the repository was cloned without submodules:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-Bootstrap phu thuoc:
+Install/bootstrap dependencies:
 
 ```bash
-./tools/bootstrap_ros2_humble.sh
+bash tools/bootstrap_ros2_humble.sh
 ```
 
-Build workspace:
+Build:
 
 ```bash
-./tools/build_workspace.sh
+bash tools/build_workspace.sh
 ```
 
-Artifact build/install mac dinh nam o:
+## Run
 
-`/home/tuenguyen/ros2_forklift_warehouse_artifacts`
-
-## Cach chay chinh
+From inside WSL:
 
 ```bash
 cd /home/tuenguyen/ros2_forklift_warehouse_ws
-source /home/tuenguyen/ros2_forklift_warehouse_ws/tools/source_visual_localization_env.sh
-./tools/run_visual_nav_manual.sh
+bash tools/run_visual_nav_manual.sh
 ```
 
-Script nay se:
+If Gazebo or RViz is already running from a previous test:
 
-- dong `gzserver`, `gzclient`, `rviz2` cu neu con treo
-- mo `Gazebo`
-- mo `RViz`
-- spawn forklift o mode `drive_model:=planar`
-- chay `RGB-D visual odometry`
-- fuse `visual odom` voi `/sim_wheel_odom` bang `EKF`
-- dua pose cho Nav2 qua chuoi TF `map -> odom -> base_footprint`
+```bash
+cd /home/tuenguyen/ros2_forklift_warehouse_ws
+pkill -x gzserver || true
+pkill -x gzclient || true
+pkill -x rviz2 || true
+bash tools/run_visual_nav_manual.sh
+```
 
-## Pipeline pose hien tai
+The script starts:
 
-Pose runtime cua forklift khong doc truc tiep vi tri chinh xac tu simulator.
+- Gazebo warehouse world
+- simulated forklift
+- RGB camera
+- depth camera
+- stereo cameras
+- RTAB-Map RGB-D odometry
+- EKF odometry fusion
+- Nav2
+- RViz visualization
+- Gazebo goal bridge
 
-Pipeline dang duoc dung:
+## Manual Test Flow
 
-`cmd_vel -> planar_move -> than xe di chuyen trong Gazebo`
+1. Start the pipeline with `bash tools/run_visual_nav_manual.sh`.
+2. Wait until Gazebo and RViz are fully loaded.
+3. In Gazebo, click `Set Nav Goal`.
+4. Click a reachable floor location in the warehouse.
+5. Watch RViz for the planned path.
+6. Watch Gazebo for the forklift motion.
+7. Watch RViz camera panels for RGB, depth, and stereo images.
 
-`than xe di chuyen -> /sim_wheel_odom`
+Healthy runtime signs:
 
-`RGB-D camera -> RTAB-Map RGB-D odometry -> visual odom`
+```text
+Pose source=rgbd_odom_fused
+state=ready
+source_topics=ok
+map->odom=ok
+odom->base=ok
+```
 
-`sim_wheel_odom + visual odom -> EKF -> /odom`
+## Localization Mode
 
-`Nav2 doc TF / odom da fuse de plan va follow path`
+The default manual mode uses:
 
-## Cach test thu cong
+```text
+localization:=false
+```
 
-Sau khi chay script:
+In this mode the static warehouse map is always loaded for Nav2 planning, and a
+static `map -> odom` transform is used for manual testing. The robot motion pose
+used by Nav2 still comes from the EKF output built from `/sim_wheel_odom` and
+`/visual_odom`.
 
-1. Doi `Gazebo` va `RViz` len day du.
-2. Trong `Gazebo`, bam `Set Nav Goal`.
-3. Click xuong san de gui goal.
-4. Quan sat:
-   - path planner trong `RViz`
-   - robot di chuyen trong `Gazebo`
-   - camera RGB/depth/stereo trong `RViz`
+RTAB-Map global localization mode exists as a later extension, but it is not the
+default stable demo path.
 
-Ban cung co the gui goal bang `Nav2 Goal` trong RViz, nhung luong test khuyen nghi hien tai la goal tu Gazebo.
+## What This Repository Does Not Focus On Now
 
-## Topic va frame quan trong
+The current repository focus is not physical rear-steer forklift tire dynamics.
+That work was intentionally removed from the main path so the project has one
+clean target:
 
-Camera:
+```text
+camera + wheel odometry -> EKF pose -> Nav2 warehouse navigation
+```
 
-- `/rgb_camera/image_raw`
-- `/depth_camera/depth/image_raw`
-- `/stereo_left_camera/image_raw`
-- `/stereo_right_camera/image_raw`
+## WSLg Notes
 
-Odometry / TF:
+If the environment script reports:
 
-- `/sim_wheel_odom`
-- `/visual_odom`
-- `/odometry/filtered`
-- `map -> odom -> base_footprint`
+```text
+/mnt/shared_memory is missing
+```
 
-Navigation:
-
-- `/plan`
-- `/cmd_vel`
-- `/goal_pose`
-
-## Ghi chu WSLg
-
-Neu script env bao:
-
-`/mnt/shared_memory is missing`
-
-thi Gazebo/RViz co the bi `COPY MODE`, thumbnail hong, hoac man hinh trang. Cach xu ly:
+Gazebo or RViz may show blank windows or WSLg copy mode artifacts. From Windows
+PowerShell, restart WSL:
 
 ```powershell
 wsl --shutdown
 ```
 
-Mo lai `Ubuntu-22.04`, source lai env va chay lai script.
-
-## Pham vi README nay
-
-README nay co y chi tap trung vao mode dang on dinh nhat:
-
-- `run_visual_nav_manual.sh`
-- `drive_model:=planar`
-- `localization:=false`
-- `use_wheel_odom_fusion:=true`
-
-Nhung script/launch khac trong repo duoc giu lai cho nghien cuu va debug, nhung khong phai duong chay chinh trong tai lieu nay.
+Then reopen Ubuntu 22.04 and run the launch script again.

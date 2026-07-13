@@ -73,7 +73,6 @@ def generate_launch_description():
     localization = LaunchConfiguration("localization")
     pose_source = LaunchConfiguration("pose_source")
     use_wheel_odom_fusion = LaunchConfiguration("use_wheel_odom_fusion")
-    drive_model = LaunchConfiguration("drive_model")
 
     visual_pose = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -97,7 +96,6 @@ def generate_launch_description():
             "localization": localization,
             "pose_source": pose_source,
             "use_wheel_odom_fusion": use_wheel_odom_fusion,
-            "drive_model": drive_model,
             "enable_evaluator": LaunchConfiguration("enable_evaluator"),
             "enable_tf_debug": LaunchConfiguration("enable_tf_debug"),
             "enable_pose_source_monitor": "false",
@@ -189,13 +187,7 @@ def generate_launch_description():
                     "global_frame": "map",
                     "odom_frame": "odom",
                     "robot_frame": "base_footprint",
-                    "cmd_vel_topic": PythonExpression(
-                        [
-                            "'/visual_nav/cmd_vel_request' if '",
-                            use_wheel_odom_fusion,
-                            "' == 'true' else '/cmd_vel'",
-                        ]
-                    ),
+                    "cmd_vel_topic": "/visual_nav/cmd_vel_request",
                     "raw_cmd_vel_topic": "cmd_vel_nav",
                 }
             ],
@@ -253,15 +245,6 @@ def generate_launch_description():
         executable="planar_motion_guard.py",
         name="planar_motion_guard",
         output="screen",
-        condition=IfCondition(
-            PythonExpression(
-                [
-                    "'true' if '",
-                    drive_model,
-                    "' == 'planar' else 'false'",
-                ]
-            )
-        ),
         parameters=[
             {
                 "input_topic": "/visual_nav/cmd_vel_request",
@@ -338,7 +321,6 @@ def generate_launch_description():
             DeclareLaunchArgument("localization", default_value="false"),
             DeclareLaunchArgument("pose_source", default_value="rgbd_odom_fused"),
             DeclareLaunchArgument("use_wheel_odom_fusion", default_value="true"),
-            DeclareLaunchArgument("drive_model", default_value="planar"),
             DeclareLaunchArgument("use_stability_guard", default_value="false"),
             DeclareLaunchArgument("use_collision_monitor", default_value="false"),
             DeclareLaunchArgument(

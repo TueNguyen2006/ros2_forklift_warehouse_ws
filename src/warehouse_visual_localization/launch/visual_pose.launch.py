@@ -41,7 +41,6 @@ def generate_launch_description():
     localization = LaunchConfiguration("localization")
     pose_source = LaunchConfiguration("pose_source")
     use_wheel_odom_fusion = LaunchConfiguration("use_wheel_odom_fusion")
-    drive_model = LaunchConfiguration("drive_model")
     drive_cmd_request_topic = PythonExpression(
         [
             "'/visual_nav/cmd_vel_request' if '",
@@ -49,14 +48,6 @@ def generate_launch_description():
             "' == 'true' else '/cmd_vel'",
         ]
     )
-    drive_cmd_output_topic = PythonExpression(
-        [
-            "'/rear_steer_controller/reference' if '",
-            drive_model,
-            "' == 'rear_steer' else '/cmd_vel'",
-        ]
-    )
-
     sim_sensors = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(visual_dir, "launch", "sim_sensors.launch.py")
@@ -75,7 +66,6 @@ def generate_launch_description():
             "spawn_y": LaunchConfiguration("spawn_y"),
             "spawn_z": LaunchConfiguration("spawn_z"),
             "spawn_yaw": LaunchConfiguration("spawn_yaw"),
-            "drive_model": drive_model,
         }.items(),
     )
 
@@ -104,30 +94,9 @@ def generate_launch_description():
             ekf_params,
             {
                 "use_sim_time": use_sim_time,
-                "odom0": PythonExpression(
-                    [
-                        "'/sim_wheel_odom' if '",
-                        drive_model,
-                        "' == 'planar' else '/rear_steer_controller/odometry'",
-                    ]
-                ),
-                "base_link_frame": PythonExpression(
-                    [
-                        "'base_footprint' if '",
-                        drive_model,
-                        "' == 'planar' else 'base_link'",
-                    ]
-                ),
-                "odom0_relative": ParameterValue(
-                    PythonExpression(
-                        [
-                            "'true' if '",
-                            drive_model,
-                            "' == 'planar' else 'false'",
-                        ]
-                    ),
-                    value_type=bool,
-                ),
+                "odom0": "/sim_wheel_odom",
+                "base_link_frame": "base_footprint",
+                "odom0_relative": True,
             },
         ],
         remappings=[("odometry/filtered", "/odom")],
@@ -167,34 +136,6 @@ def generate_launch_description():
                 "reverse_duration_sec": 2.0,
                 "linear_speed": 0.08,
                 "angular_speed": 0.18,
-            }
-        ],
-    )
-
-    twist_watchdog = Node(
-        package="warehouse_visual_localization",
-        executable="twist_watchdog.py",
-        name="twist_watchdog",
-        output="screen",
-        condition=IfCondition(
-            PythonExpression(
-                [
-                    "'true' if '",
-                    use_wheel_odom_fusion,
-                    "' == 'true' and '",
-                    drive_model,
-                    "' == 'rear_steer' else 'false'",
-                ]
-            )
-        ),
-        parameters=[
-            {
-                "use_sim_time": use_sim_time,
-                "input_topic": drive_cmd_request_topic,
-                "output_topic": drive_cmd_output_topic,
-                "hold_timeout_sec": 0.20,
-                "publish_hz": 20.0,
-                "use_stamped_output": True,
             }
         ],
     )
@@ -284,7 +225,6 @@ def generate_launch_description():
             DeclareLaunchArgument("localization", default_value="false"),
             DeclareLaunchArgument("pose_source", default_value="rgbd_odom_fused"),
             DeclareLaunchArgument("use_wheel_odom_fusion", default_value="true"),
-            DeclareLaunchArgument("drive_model", default_value="planar"),
             DeclareLaunchArgument("enable_evaluator", default_value="false"),
             DeclareLaunchArgument("enable_tf_debug", default_value="true"),
             DeclareLaunchArgument("enable_pose_source_monitor", default_value="true"),
@@ -295,7 +235,6 @@ def generate_launch_description():
             rgbd_odom,
             ekf_fusion,
             rtabmap_localization,
-            twist_watchdog,
             startup_motion_probe,
             scan_retimestamp,
             tf_debug,

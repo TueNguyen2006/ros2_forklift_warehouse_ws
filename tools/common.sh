@@ -26,10 +26,18 @@ ensure_required_sources() {
 }
 
 source_ros_environment() {
-  source /opt/ros/humble/setup.bash
+  local nounset_was_enabled=0
+  case $- in
+    *u*) nounset_was_enabled=1; set +u ;;
+  esac
 
+  source /opt/ros/humble/setup.bash
   if [[ -f /usr/share/gazebo/setup.sh ]]; then
     source /usr/share/gazebo/setup.sh
+  fi
+
+  if [[ ${nounset_was_enabled} -eq 1 ]]; then
+    set -u
   fi
 }
 
@@ -93,5 +101,12 @@ source_workspace_environment() {
   ensure_required_sources
   source_ros_environment
   ensure_workspace_built
+  local nounset_was_enabled=0
+  case $- in
+    *u*) nounset_was_enabled=1; set +u ;;
+  esac
   source "${INSTALL_BASE}/setup.bash"
+  if [[ ${nounset_was_enabled} -eq 1 ]]; then
+    set -u
+  fi
 }

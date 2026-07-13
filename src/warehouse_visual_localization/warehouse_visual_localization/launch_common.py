@@ -20,8 +20,6 @@ STEREO_CAMERA_UPDATE_RATE = 6
 STEREO_CAMERA_WIDTH = 320
 STEREO_CAMERA_HEIGHT = 240
 STEREO_BASELINE = 0.12
-REAR_STEER_CAMERA_MOUNT_X = 1.40
-REAR_STEER_CAMERA_MOUNT_Z = 2.30
 
 
 def is_valid_rtabmap_db(path: str) -> bool:
@@ -158,62 +156,6 @@ def _set_or_create_origin(
     origin.set("rpy", rpy)
 
 
-def _ensure_visual_base_footprint(root: ElementTree.Element) -> None:
-    if root.find("./link[@name='base_footprint']") is not None:
-        return
-
-    base_footprint = ElementTree.Element("link", {"name": "base_footprint"})
-    base_footprint_joint = ElementTree.Element(
-        "joint",
-        {"name": "base_link_to_base_footprint", "type": "fixed"},
-    )
-    # Nav2 and odometry use base_footprint as the robot root on the ground plane.
-    # base_link should hang below it as the physical chassis frame, not the other way around.
-    ElementTree.SubElement(base_footprint_joint, "parent", {"link": "base_footprint"})
-    ElementTree.SubElement(base_footprint_joint, "child", {"link": "base_link"})
-    ElementTree.SubElement(
-        base_footprint_joint,
-        "origin",
-        {"xyz": f"{-NAV_BASE_OFFSET_X} 0 0", "rpy": "0 0 0"},
-    )
-
-    root.append(base_footprint)
-    root.append(base_footprint_joint)
-
-
-def _disable_rear_steer_lidar_visualization(root: ElementTree.Element) -> None:
-    for gazebo_element in root.findall("gazebo"):
-        if gazebo_element.attrib.get("reference") != "laser_frame_link":
-            continue
-
-        for sensor in gazebo_element.findall("sensor"):
-            if sensor.attrib.get("type") != "ray":
-                continue
-            visualize = sensor.find("visualize")
-            if visualize is None:
-                visualize = ElementTree.SubElement(sensor, "visualize")
-            visualize.text = "false"
-
-
-def _lock_rear_steer_fork_carriage(root: ElementTree.Element) -> None:
-    fork_joint = root.find("./joint[@name='fork_base_joint']")
-    if fork_joint is None:
-        return
-
-    fork_joint.set("type", "fixed")
-
-    for child_name in ["axis", "limit", "dynamics"]:
-        child = fork_joint.find(child_name)
-        if child is not None:
-            fork_joint.remove(child)
-
-    ros2_control_joint = root.find("./ros2_control/joint[@name='fork_base_joint']")
-    if ros2_control_joint is not None:
-        ros2_control = root.find("./ros2_control")
-        if ros2_control is not None:
-            ros2_control.remove(ros2_control_joint)
-
-
 def _remove_existing_camera_assets(root: ElementTree.Element) -> None:
     camera_link_names = {
         "camera_link",
@@ -252,233 +194,11 @@ def _remove_existing_camera_assets(root: ElementTree.Element) -> None:
             root.remove(link)
 
 
-def _add_camera_sensor(
-    root: ElementTree.Element,
-    *,
-    link_name: str,
-    sensor_name: str,
-    sensor_type: str,
-    plugin_name: str,
-    camera_name: str,
-    frame_name: str,
-    width: int,
-    height: int,
-    update_rate: int,
-    image_format: str,
-    near_clip: str = "0.05",
-    far_clip: str = "12.0",
-    min_depth: str | None = None,
-    max_depth: str | None = None,
-) -> None:
-    gazebo = ElementTree.Element("gazebo", {"reference": link_name})
-    sensor = ElementTree.SubElement(
-        gazebo,
-        "sensor",
-        {"name": sensor_name, "type": sensor_type},
-    )
-    ElementTree.SubElement(sensor, "pose").text = "0 0 0 0 0 0"
-    ElementTree.SubElement(sensor, "always_on").text = "true"
-    ElementTree.SubElement(sensor, "visualize").text = "false"
-    ElementTree.SubElement(sensor, "update_rate").text = str(update_rate)
-    camera = ElementTree.SubElement(sensor, "camera")
-    ElementTree.SubElement(camera, "horizontal_fov").text = "1.089"
-    image = ElementTree.SubElement(camera, "image")
-    ElementTree.SubElement(image, "format").text = image_format
-    ElementTree.SubElement(image, "width").text = str(width)
-    ElementTree.SubElement(image, "height").text = str(height)
-    clip = ElementTree.SubElement(camera, "clip")
-    ElementTree.SubElement(clip, "near").text = near_clip
-    ElementTree.SubElement(clip, "far").text = far_clip
-    plugin = ElementTree.SubElement(
-        sensor,
-        "plugin",
-        {"name": plugin_name, "filename": "libgazebo_ros_camera.so"},
-    )
-    ElementTree.SubElement(plugin, "frame_name").text = frame_name
-    ElementTree.SubElement(plugin, "camera_name").text = camera_name
-    if min_depth is not None:
-        ElementTree.SubElement(plugin, "min_depth").text = min_depth
-    if max_depth is not None:
-        ElementTree.SubElement(plugin, "max_depth").text = max_depth
-    root.append(gazebo)
-
-
-def _add_rear_steer_camera_suite(root: ElementTree.Element) -> None:
-    if root.find("./link[@name='rgb_camera_link']") is not None:
-        return
-
-    def add_link(name: str) -> None:
-        root.append(ElementTree.Element("link", {"name": name}))
-
-    def add_fixed_joint(
-        name: str,
-        parent: str,
-        child: str,
-        xyz: str,
-        rpy: str,
-    ) -> None:
-        joint = ElementTree.Element("joint", {"name": name, "type": "fixed"})
-        ElementTree.SubElement(joint, "parent", {"link": parent})
-        ElementTree.SubElement(joint, "child", {"link": child})
-        ElementTree.SubElement(joint, "origin", {"xyz": xyz, "rpy": rpy})
-        root.append(joint)
-
-    add_link("rgb_camera_link")
-    add_link("rgb_camera_optical_link")
-    add_link("depth_camera_link")
-    add_link("depth_camera_optical_link")
-    add_link("stereo_left_camera_link")
-    add_link("stereo_left_camera_optical_link")
-    add_link("stereo_right_camera_link")
-    add_link("stereo_right_camera_optical_link")
-
-    add_fixed_joint(
-        "rgb_camera_joint",
-        "cabin_link",
-        "rgb_camera_link",
-        f"{REAR_STEER_CAMERA_MOUNT_X} 0.0 {REAR_STEER_CAMERA_MOUNT_Z}",
-        "0 0 0",
-    )
-    add_fixed_joint(
-        "rgb_camera_optical_joint",
-        "rgb_camera_link",
-        "rgb_camera_optical_link",
-        "0 0 0",
-        "-1.57079632679 0 -1.57079632679",
-    )
-    add_fixed_joint(
-        "depth_camera_joint",
-        "cabin_link",
-        "depth_camera_link",
-        f"{REAR_STEER_CAMERA_MOUNT_X + 0.03} 0.0 {REAR_STEER_CAMERA_MOUNT_Z - 0.08}",
-        "0 0 0",
-    )
-    add_fixed_joint(
-        "depth_camera_optical_joint",
-        "depth_camera_link",
-        "depth_camera_optical_link",
-        "0 0 0",
-        "-1.57079632679 0 -1.57079632679",
-    )
-    add_fixed_joint(
-        "stereo_left_camera_joint",
-        "cabin_link",
-        "stereo_left_camera_link",
-        f"{REAR_STEER_CAMERA_MOUNT_X - 0.02} {STEREO_BASELINE / 2.0} {REAR_STEER_CAMERA_MOUNT_Z - 0.02}",
-        "0 0 0",
-    )
-    add_fixed_joint(
-        "stereo_left_camera_optical_joint",
-        "stereo_left_camera_link",
-        "stereo_left_camera_optical_link",
-        "0 0 0",
-        "-1.57079632679 0 -1.57079632679",
-    )
-    add_fixed_joint(
-        "stereo_right_camera_joint",
-        "cabin_link",
-        "stereo_right_camera_link",
-        f"{REAR_STEER_CAMERA_MOUNT_X - 0.02} -{STEREO_BASELINE / 2.0} {REAR_STEER_CAMERA_MOUNT_Z - 0.02}",
-        "0 0 0",
-    )
-    add_fixed_joint(
-        "stereo_right_camera_optical_joint",
-        "stereo_right_camera_link",
-        "stereo_right_camera_optical_link",
-        "0 0 0",
-        "-1.57079632679 0 -1.57079632679",
-    )
-
-    _add_camera_sensor(
-        root,
-        link_name="rgb_camera_link",
-        sensor_name="rgb_camera_sensor",
-        sensor_type="camera",
-        plugin_name="rgb_camera_controller",
-        camera_name="rgb_camera",
-        frame_name="rgb_camera_optical_link",
-        width=RGB_CAMERA_WIDTH,
-        height=RGB_CAMERA_HEIGHT,
-        update_rate=RGB_CAMERA_UPDATE_RATE,
-        image_format="R8G8B8",
-    )
-    _add_camera_sensor(
-        root,
-        link_name="depth_camera_link",
-        sensor_name="depth_camera_sensor",
-        sensor_type="depth",
-        plugin_name="depth_camera_controller",
-        camera_name="depth_camera",
-        frame_name="depth_camera_optical_link",
-        width=DEPTH_CAMERA_WIDTH,
-        height=DEPTH_CAMERA_HEIGHT,
-        update_rate=DEPTH_CAMERA_STABLE_UPDATE_RATE,
-        image_format="R8G8B8",
-        min_depth="0.10",
-        max_depth="12.0",
-    )
-    _add_camera_sensor(
-        root,
-        link_name="stereo_left_camera_link",
-        sensor_name="stereo_left_camera_sensor",
-        sensor_type="camera",
-        plugin_name="stereo_left_camera_controller",
-        camera_name="stereo_left_camera",
-        frame_name="stereo_left_camera_optical_link",
-        width=STEREO_CAMERA_WIDTH,
-        height=STEREO_CAMERA_HEIGHT,
-        update_rate=STEREO_CAMERA_UPDATE_RATE,
-        image_format="R8G8B8",
-    )
-    _add_camera_sensor(
-        root,
-        link_name="stereo_right_camera_link",
-        sensor_name="stereo_right_camera_sensor",
-        sensor_type="camera",
-        plugin_name="stereo_right_camera_controller",
-        camera_name="stereo_right_camera",
-        frame_name="stereo_right_camera_optical_link",
-        width=STEREO_CAMERA_WIDTH,
-        height=STEREO_CAMERA_HEIGHT,
-        update_rate=STEREO_CAMERA_UPDATE_RATE,
-        image_format="R8G8B8",
-    )
-
-
-def build_visual_rear_steer_robot_description(
-    realistic_dir: str,
-    controller_config_path: str,
-    *,
-    lock_forks: bool = False,
-) -> str:
-    robot_description = xacro.process_file(
-        os.path.join(realistic_dir, "urdf", "rear_steer_forklift.urdf.xacro")
-    ).toxml()
-    root = ElementTree.fromstring(robot_description)
-
-    _ensure_visual_base_footprint(root)
-    _disable_rear_steer_lidar_visualization(root)
-    if lock_forks:
-        _lock_rear_steer_fork_carriage(root)
-    _remove_existing_camera_assets(root)
-    _add_rear_steer_camera_suite(root)
-
-    gazebo_control_plugin = root.find("./gazebo/plugin[@name='gazebo_ros2_control']")
-    if gazebo_control_plugin is not None:
-        parameters = gazebo_control_plugin.find("parameters")
-        if parameters is None:
-            parameters = ElementTree.SubElement(gazebo_control_plugin, "parameters")
-        parameters.text = controller_config_path
-
-    return ElementTree.tostring(root, encoding="unicode")
-
-
 def get_common_paths():
     visual_dir = get_package_share_directory("warehouse_visual_localization")
     bringup_dir = get_package_share_directory("forklift_nav_bringup")
     gazebo_ros_dir = get_package_share_directory("gazebo_ros")
     forklift_robot_dir = get_package_share_directory("forklift_robot")
-    realistic_dir = get_package_share_directory("forklift_description_realistic")
     ros_gazebo_plugins_prefix = get_package_prefix("gazebo_plugins")
     ros_gazebo_plugin_dir = os.path.join(ros_gazebo_plugins_prefix, "lib")
 
@@ -487,7 +207,6 @@ def get_common_paths():
         "bringup_dir": bringup_dir,
         "gazebo_ros_dir": gazebo_ros_dir,
         "forklift_robot_dir": forklift_robot_dir,
-        "realistic_dir": realistic_dir,
         "ros_gazebo_plugin_dir": ros_gazebo_plugin_dir,
     }
 

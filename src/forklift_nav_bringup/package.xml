@@ -3,7 +3,7 @@
 <package format="3">
   <name>forklift_nav_bringup</name>
   <version>0.1.0</version>
-  <description>Warehouse simulation bringup and Nav2 configuration for a forklift baseline and realistic rear-steer model.</description>
+  <description>Warehouse simulation bringup and Nav2 configuration for a forklift baseline.</description>
   <maintainer email="codex@example.com">Codex</maintainer>
   <license>Apache-2.0</license>
 
@@ -35,7 +35,6 @@
   <exec_depend>nav2_waypoint_follower</exec_depend>
   <exec_depend>forklift_robot</exec_depend>
   <exec_depend>forklift_safety</exec_depend>
-  <exec_depend>forklift_description_realistic</exec_depend>
   <exec_depend>gazebo_nav_goal_tool</exec_depend>
 
   <export>
