@@ -164,17 +164,20 @@ Target environment:
 - RTAB-Map ROS for Humble
 - robot_localization
 
-The helper scripts assume the workspace is located at:
+The helper scripts infer the workspace from their own location. The repository
+can be cloned into any directory, for example:
 
 ```text
-/home/tuenguyen/ros2_forklift_warehouse_ws
+$HOME/ros2_forklift_warehouse_ws
 ```
 
-Build artifacts are written to:
+Build artifacts are written outside the source tree by default:
 
 ```text
-/home/tuenguyen/ros2_forklift_warehouse_artifacts
+$HOME/ros2_forklift_warehouse_artifacts
 ```
+
+Override this location with `ARTIFACT_ROOT` if needed.
 
 ## Setup
 
@@ -182,7 +185,7 @@ Clone with submodules:
 
 ```bash
 git clone --recurse-submodules git@github.com:TueNguyen2006/ros2_forklift_warehouse_ws.git
-cd /home/tuenguyen/ros2_forklift_warehouse_ws
+cd ros2_forklift_warehouse_ws
 ```
 
 If the repository was cloned without submodules:
@@ -208,14 +211,14 @@ bash tools/build_workspace.sh
 From inside WSL:
 
 ```bash
-cd /home/tuenguyen/ros2_forklift_warehouse_ws
+cd /path/to/ros2_forklift_warehouse_ws
 bash tools/run_visual_nav_manual.sh
 ```
 
 If Gazebo or RViz is already running from a previous test:
 
 ```bash
-cd /home/tuenguyen/ros2_forklift_warehouse_ws
+cd /path/to/ros2_forklift_warehouse_ws
 pkill -x gzserver || true
 pkill -x gzclient || true
 pkill -x rviz2 || true

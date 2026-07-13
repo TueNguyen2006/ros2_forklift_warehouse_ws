@@ -19,5 +19,5 @@ Nav2 consumes map -> odom -> base_footprint
 The full project documentation is in the workspace root README:
 
 ```text
-/home/tuenguyen/ros2_forklift_warehouse_ws/README.md
+README.md
 ```

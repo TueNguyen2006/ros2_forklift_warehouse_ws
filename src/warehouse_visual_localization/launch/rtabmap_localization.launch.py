@@ -34,6 +34,7 @@ def _is_valid_rtabmap_db(path: str) -> bool:
 
 
 def _select_default_database_path(package_dir: str) -> str:
+    workspace_dir = os.environ.get("VISUAL_LOCALIZATION_WORKSPACE_DIR", "")
     candidates = [
         os.environ.get("WAREHOUSE_RTABMAP_DB", ""),
         os.path.join(
@@ -43,15 +44,17 @@ def _select_default_database_path(package_dir: str) -> str:
             "test_mapping.db",
         ),
         os.path.join(package_dir, "maps", "warehouse_rtabmap.db"),
-        os.path.join(
-            os.path.expanduser("~"),
-            "ros2_forklift_warehouse_ws",
-            "src",
-            "warehouse_visual_localization",
-            "maps",
-            "warehouse_rtabmap.db",
-        ),
     ]
+    if workspace_dir:
+        candidates.append(
+            os.path.join(
+                workspace_dir,
+                "src",
+                "warehouse_visual_localization",
+                "maps",
+                "warehouse_rtabmap.db",
+            )
+        )
 
     for candidate in candidates:
         if candidate and _is_valid_rtabmap_db(candidate):

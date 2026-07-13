@@ -17,7 +17,6 @@ TF_WAIT_SEC="${TF_WAIT_SEC:-90.0}"
 LOCALIZATION="${LOCALIZATION:-true}"
 POSE_SOURCE="${POSE_SOURCE:-rgbd_localization_fused}"
 NAV_PARAMS_FILE="${NAV_PARAMS_FILE:-${VISUAL_DIR}/config/nav2_params_visual.yaml}"
-MODE="${MODE:-visual}"
 USE_WHEEL_ODOM_FUSION="${USE_WHEEL_ODOM_FUSION:-true}"
 ENABLE_STARTUP_MOTION_PROBE="${ENABLE_STARTUP_MOTION_PROBE:-true}"
 ENABLE_NAV_DEBUG_LOGGER="${ENABLE_NAV_DEBUG_LOGGER:-true}"
@@ -54,41 +53,26 @@ pkill -x ekf_node || true
 pkill -x rgbd_odometry || true
 pkill -x rtabmap || true
 
-if [[ "${MODE}" == "baseline" ]]; then
-  ros2 launch warehouse_visual_localization baseline_truth_mode.launch.py \
-    gui:=false \
-    rviz:=false \
-    headless:=true \
-    world:="${WORLD_FILE}" \
-    map:="${BRINGUP_DIR}/maps/warehouse_map.yaml" \
-    auto_generate_map:=true \
-    spawn_x:="${SPAWN_X}" \
-    spawn_y:="${SPAWN_Y}" \
-    spawn_z:="${SPAWN_Z}" \
-    spawn_yaw:="${SPAWN_YAW}" \
-    >"${LOG_FILE}" 2>&1 &
-else
-  ros2 launch warehouse_visual_localization nav_with_estimated_pose.launch.py \
-    gui:=false \
-    rviz:=false \
-    headless:=true \
-    world:="${WORLD_FILE}" \
-    params_file:="${NAV_PARAMS_FILE}" \
-    database_path:="${DATABASE_PATH}" \
-    localization:="${LOCALIZATION}" \
-    pose_source:="${POSE_SOURCE}" \
-    use_wheel_odom_fusion:="${USE_WHEEL_ODOM_FUSION}" \
-    enable_startup_motion_probe:="${ENABLE_STARTUP_MOTION_PROBE}" \
-    enable_nav_debug_logger:="${ENABLE_NAV_DEBUG_LOGGER}" \
-    enable_tf_debug:="${ENABLE_TF_DEBUG}" \
-    enable_evaluator:=false \
-    enable_gazebo_goal_bridge:=false \
-    spawn_x:="${SPAWN_X}" \
-    spawn_y:="${SPAWN_Y}" \
-    spawn_z:="${SPAWN_Z}" \
-    spawn_yaw:="${SPAWN_YAW}" \
-    >"${LOG_FILE}" 2>&1 &
-fi
+ros2 launch warehouse_visual_localization nav_with_estimated_pose.launch.py \
+  gui:=false \
+  rviz:=false \
+  headless:=true \
+  world:="${WORLD_FILE}" \
+  params_file:="${NAV_PARAMS_FILE}" \
+  database_path:="${DATABASE_PATH}" \
+  localization:="${LOCALIZATION}" \
+  pose_source:="${POSE_SOURCE}" \
+  use_wheel_odom_fusion:="${USE_WHEEL_ODOM_FUSION}" \
+  enable_startup_motion_probe:="${ENABLE_STARTUP_MOTION_PROBE}" \
+  enable_nav_debug_logger:="${ENABLE_NAV_DEBUG_LOGGER}" \
+  enable_tf_debug:="${ENABLE_TF_DEBUG}" \
+  enable_evaluator:=false \
+  enable_gazebo_goal_bridge:=false \
+  spawn_x:="${SPAWN_X}" \
+  spawn_y:="${SPAWN_Y}" \
+  spawn_z:="${SPAWN_Z}" \
+  spawn_yaw:="${SPAWN_YAW}" \
+  >"${LOG_FILE}" 2>&1 &
 LAUNCH_PID=$!
 
 cleanup() {
