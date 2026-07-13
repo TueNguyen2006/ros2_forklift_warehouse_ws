@@ -90,6 +90,179 @@ output: stable /odom for Nav2 controller and costmaps
 
 The result is much more stable path following than visual odometry alone.
 
+## Planner And Trajectory Following Algorithm
+
+When a navigation goal is selected, this repository does not directly drive the
+forklift toward the clicked point. The goal is converted into a global path first,
+then a local trajectory follower repeatedly chooses short motion commands that
+track that path.
+
+The runtime loop is:
+
+```text
+Nav goal in map frame
+    -> Nav2 behavior tree
+    -> global planner: Smac Hybrid-A*
+    -> global path /plan
+    -> local controller: MPPI
+    -> /visual_nav/cmd_vel_request
+    -> planar motion guard
+    -> /cmd_vel
+    -> Gazebo forklift
+```
+
+### Global Planner
+
+The visual navigation profile uses Nav2 `SmacPlannerHybrid` as the global
+planner:
+
+```text
+planner_id: GridBased
+plugin: nav2_smac_planner/SmacPlannerHybrid
+motion_model_for_search: REEDS_SHEPP
+minimum_turning_radius: 0.55
+```
+
+Algorithmically, this is a Hybrid-A* style planner. Instead of planning only on
+2D grid cells `(x, y)`, it plans over a discretized vehicle state:
+
+```text
+state = (x, y, yaw)
+```
+
+That matters for a forklift-like robot because orientation is part of whether a
+path is actually followable. A normal 2D grid planner can produce paths with
+sharp corners that look valid on the map but are hard for a vehicle with turning
+radius limits to follow. Smac Hybrid plans with heading bins, turning radius, and
+motion primitives, so the path is closer to what the controller can execute.
+
+The current planner allows forward and reverse motion through the Reeds-Shepp
+search model. Reverse is still penalized:
+
+```text
+reverse_penalty: 1.10
+change_penalty: 0.05
+non_straight_penalty: 1.10
+cost_penalty: 1.8
+```
+
+This means reverse is allowed when useful for tight warehouse maneuvers, but the
+planner still prefers simple, smooth, lower-cost forward paths when available.
+
+### Behavior Tree
+
+The active Nav2 behavior tree computes and follows paths without spin or backup
+recovery behaviors:
+
+```text
+ComputePathToPose planner_id=GridBased
+FollowPath controller_id=FollowPath
+Clear costmaps if planning or following fails
+Wait as the only recovery behavior
+```
+
+Spin and generic backup recovery are intentionally removed because they can make
+a forklift behave unrealistically in narrow aisles. The tree replans
+periodically, clears stale obstacle data when needed, and then asks the
+controller to continue following the latest path.
+
+### Local Trajectory Follower
+
+The visual navigation profile uses Nav2 MPPI as the local controller:
+
+```text
+controller_id: FollowPath
+plugin: nav2_mppi_controller::MPPIController
+motion_model: Ackermann
+min_turning_r: 0.55
+controller_frequency: 20 Hz
+```
+
+MPPI means Model Predictive Path Integral control. At every control tick, it
+samples many short candidate control sequences, rolls them forward through the
+motion model, scores the resulting trajectories, and sends the best immediate
+velocity command.
+
+In simplified form:
+
+```text
+for each control cycle:
+    read fused pose from map -> odom -> base_footprint
+    read global path and local costmap
+    sample candidate velocity commands
+    simulate candidate trajectories over a short horizon
+    score each trajectory with critics
+    publish the first command from the best trajectory
+```
+
+The important MPPI parameters in this repo are:
+
+```text
+time_steps: 28
+model_dt: 0.05
+batch_size: 1000
+vx_max: 0.32
+vx_min: -0.18
+wz_max: 0.45
+ax_max: 0.55
+ax_min: -0.65
+az_max: 0.70
+```
+
+So each control update evaluates about 1.4 seconds of possible future motion
+using 1000 sampled trajectories. The speed and acceleration limits are kept low
+because the simulated forklift is large relative to warehouse aisles and because
+visual odometry benefits from smoother camera motion.
+
+### MPPI Critics
+
+MPPI chooses a trajectory by combining several cost terms, called critics:
+
+```text
+ConstraintCritic
+CostCritic
+GoalCritic
+GoalAngleCritic
+PathAlignCritic
+PathFollowCritic
+PathAngleCritic
+PreferForwardCritic
+```
+
+Their roles are:
+
+- `ConstraintCritic` penalizes trajectories that violate motion constraints.
+- `CostCritic` penalizes trajectories close to obstacles in the costmap.
+- `GoalCritic` pulls the robot toward the final goal position.
+- `GoalAngleCritic` encourages the final heading near the goal to match.
+- `PathAlignCritic` encourages the robot heading to align with the path.
+- `PathFollowCritic` encourages staying close to the global path.
+- `PathAngleCritic` penalizes bad angular approach to the path.
+- `PreferForwardCritic` biases the solution toward forward driving when possible.
+
+This is why the controller behaves better than a simple PID-to-path approach in
+this setup. A PID follower mainly reacts to cross-track and heading error. MPPI
+looks ahead, checks obstacle cost, respects acceleration and turning limits, and
+can choose smoother commands before the forklift is already too far from the
+path.
+
+### Command Smoothing
+
+The MPPI output is not sent straight to the Gazebo plugin. It first passes through
+`planar_motion_guard.py`.
+
+That node keeps the architecture practical for the current planar simulation:
+
+```text
+MPPI command
+    -> low-speed turn smoothing / guard logic
+    -> final /cmd_vel
+```
+
+It does not replace Nav2 planning or control. Its role is to reduce unstable
+low-speed command behavior before the command reaches the planar Gazebo drive
+plugin.
+
 ## Important Files
 
 - `tools/run_visual_nav_manual.sh`
