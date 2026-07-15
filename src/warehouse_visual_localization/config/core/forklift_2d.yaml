@@ -1,0 +1,46 @@
+vehicle:
+  wheelbase: 1.25
+  track_width: 0.82
+  mass: 1400.0
+  yaw_inertia: 900.0
+  cg_to_front_axle: 0.55
+  cg_height: 0.45
+  max_steer: 0.62
+  max_steer_rate: 1.2
+  max_speed: 0.35
+  max_reverse_speed: 0.18
+  max_accel: 0.55
+  max_decel: 0.65
+  drive_axle: rear
+  steer_axle: rear
+
+controller:
+  lookahead: 0.9
+  target_speed: 0.28
+  goal_tolerance: 0.18
+  yaw_rate_limit: 0.45
+
+safety:
+  min_obstacle_distance: 0.85
+  cbf_gain: 1.4
+  max_lateral_accel: 0.65
+  max_decel: 0.65
+
+friction:
+  mu_static: 0.75
+  mu_dynamic: 0.55
+  slip_velocity_scale: 0.25
+
+velocity_profile:
+  max_speed: 0.35
+  max_accel: 0.55
+  max_decel: 0.65
+
+localization:
+  process_xy: 0.025
+  process_yaw: 0.015
+  vision_xy: 0.080
+  vision_yaw: 0.060
+  wheel_xy: 0.030
+  wheel_yaw: 0.030
+

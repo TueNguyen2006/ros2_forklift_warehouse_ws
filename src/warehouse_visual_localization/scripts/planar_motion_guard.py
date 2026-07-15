@@ -1,14 +1,9 @@
-#!/usr/bin/env python3
-import math
-
 import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.duration import Duration
 from rclpy.node import Node
 
-
-def clamp(value: float, lower: float, upper: float) -> float:
-    return max(lower, min(upper, value))
+from warehouse_visual_localization.core.command_shaper import CommandShaper, CommandShaperConfig
 
 
 class PlanarMotionGuard(Node):
@@ -31,23 +26,21 @@ class PlanarMotionGuard(Node):
             seconds=float(self.get_parameter("hold_timeout_sec").value)
         )
         publish_hz = max(float(self.get_parameter("publish_hz").value), 1.0)
-        self.linear_deadband = max(
-            float(self.get_parameter("linear_deadband").value), 0.0
+        shaper_config = CommandShaperConfig(
+            linear_deadband=max(float(self.get_parameter("linear_deadband").value), 0.0),
+            min_turn_linear_speed=max(
+                float(self.get_parameter("min_turn_linear_speed").value), 0.0
+            ),
+            turn_command_threshold=max(
+                float(self.get_parameter("turn_command_threshold").value), 0.0
+            ),
+            max_angular_speed=max(float(self.get_parameter("max_angular_speed").value), 0.0),
+            max_angular_speed_at_low_linear=max(
+                float(self.get_parameter("max_angular_speed_at_low_linear").value), 0.0
+            ),
+            default_linear_sign=float(self.get_parameter("default_linear_sign").value),
         )
-        self.min_turn_linear_speed = max(
-            float(self.get_parameter("min_turn_linear_speed").value), 0.0
-        )
-        self.turn_command_threshold = max(
-            float(self.get_parameter("turn_command_threshold").value), 0.0
-        )
-        self.max_angular_speed = max(
-            float(self.get_parameter("max_angular_speed").value), 0.0
-        )
-        self.max_angular_speed_at_low_linear = max(
-            float(self.get_parameter("max_angular_speed_at_low_linear").value), 0.0
-        )
-        default_linear_sign = float(self.get_parameter("default_linear_sign").value)
-        self.preferred_linear_sign = -1.0 if default_linear_sign < 0.0 else 1.0
+        self.command_shaper = CommandShaper(shaper_config)
 
         self.publisher = self.create_publisher(Twist, self.output_topic, 20)
         self.subscription = self.create_subscription(
@@ -63,36 +56,22 @@ class PlanarMotionGuard(Node):
             % (
                 self.input_topic,
                 self.output_topic,
-                self.min_turn_linear_speed,
-                self.max_angular_speed,
-                self.max_angular_speed_at_low_linear,
+                shaper_config.min_turn_linear_speed,
+                shaper_config.max_angular_speed,
+                shaper_config.max_angular_speed_at_low_linear,
             )
         )
 
     def _input_cb(self, msg: Twist) -> None:
         self.last_msg = msg
         self.last_stamp = self.get_clock().now()
-        if math.fabs(msg.linear.x) > self.linear_deadband:
-            self.preferred_linear_sign = 1.0 if msg.linear.x >= 0.0 else -1.0
+        self.command_shaper.observe_input(msg.linear.x)
 
     def _shape_twist(self, raw: Twist) -> Twist:
         shaped = Twist()
-        shaped.linear.x = raw.linear.x
-        shaped.angular.z = clamp(
-            raw.angular.z, -self.max_angular_speed, self.max_angular_speed
+        shaped.linear.x, shaped.angular.z = self.command_shaper.shape(
+            raw.linear.x, raw.angular.z
         )
-
-        if math.fabs(shaped.angular.z) < self.turn_command_threshold:
-            return shaped
-
-        if math.fabs(shaped.linear.x) < self.min_turn_linear_speed:
-            shaped.linear.x = self.preferred_linear_sign * self.min_turn_linear_speed
-            shaped.angular.z = clamp(
-                shaped.angular.z,
-                -self.max_angular_speed_at_low_linear,
-                self.max_angular_speed_at_low_linear,
-            )
-
         return shaped
 
     def _publish(self, msg: Twist) -> None:

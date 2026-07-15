@@ -1,8 +1,20 @@
 from pathlib import Path
+from setuptools import Extension
+from setuptools import find_packages
 from setuptools import setup
 
 
 package_name = "warehouse_visual_localization"
+
+
+def extension_modules():
+    return [
+        Extension(
+            f"{package_name}._mppi_native",
+            sources=[f"{package_name}/_mppi_native.cpp"],
+            extra_compile_args=["-O3", "-std=c++17"],
+        )
+    ]
 
 
 def collect_data_files():
@@ -25,7 +37,8 @@ def collect_data_files():
 setup(
     name=package_name,
     version="0.1.0",
-    packages=[package_name],
+    packages=find_packages(include=[package_name, f"{package_name}.*"]),
+    ext_modules=extension_modules(),
     data_files=collect_data_files(),
     install_requires=["setuptools"],
     scripts=[

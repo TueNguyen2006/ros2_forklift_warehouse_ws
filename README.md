@@ -396,6 +396,15 @@ plugin.
 - `tools/run_visual_nav_manual.sh`
   Main command for manual testing and demo.
 
+- `tests/standalone/`
+  Lightweight algorithm tests that run without Gazebo, RViz, or Nav2.
+
+- `src/warehouse_visual_localization/warehouse_visual_localization/core/`
+  Shared algorithm modules imported by standalone tests and ROS nodes.
+
+- `src/warehouse_visual_localization/config/core/forklift_2d.yaml`
+  Common 2D vehicle, controller, friction, localization, and safety parameters.
+
 - `src/warehouse_visual_localization/launch/nav_with_estimated_pose.launch.py`
   Top-level launch for the visual navigation pipeline.
 
@@ -422,6 +431,109 @@ plugin.
 
 - `src/forklift_nav_bringup/maps/warehouse_map.yaml`
   Static occupancy map loaded by Nav2 and RViz.
+
+## Standalone Algorithm Test Environments
+
+The repository also provides lightweight test environments for individual
+algorithm groups. These do not start the warehouse scene, Gazebo GUI, RViz, or
+the Nav2 stack.
+
+Run all standalone tests:
+
+```bash
+cd /path/to/ros2_forklift_warehouse_ws
+bash tests/standalone/run_all_standalone_tests.sh
+```
+
+Run one test:
+
+```bash
+python3 tests/standalone/kinematics_dynamics_demo.py
+python3 tests/standalone/slam_localization_demo.py
+python3 tests/standalone/slip_friction_demo.py
+python3 tests/standalone/velocity_profile_demo.py
+python3 tests/standalone/cbf_safety_demo.py
+python3 tests/standalone/controller_tracking_demo.py
+```
+
+Each test writes logs, summary JSON, CSV, and plots to:
+
+```text
+$HOME/ros2_forklift_warehouse_artifacts/standalone_tests
+```
+
+The structure is intentionally split by responsibility:
+
+```text
+warehouse_visual_localization/core/
+    shared formulas and algorithms
+
+tests/standalone/
+    independent Matplotlib-based validation environments
+
+warehouse_visual_localization/ros_nodes/
+    ROS adapter documentation; ROS nodes stay thin
+
+warehouse_visual_localization/gazebo/
+    Gazebo adapter documentation; no duplicated dynamics formulas
+```
+
+The important rule is that standalone tests must not copy formulas from ROS
+nodes. ROS nodes and tests should import the same core modules, so changing a
+vehicle parameter, safety formula, or controller rule in `core/` updates every
+environment.
+
+Current standalone groups:
+
+- `kinematics_dynamics_demo.py`: 2D forklift body motion, steering angle,
+  trajectory, center of mass proxy, yaw rate, and force estimates.
+- `slam_localization_demo.py`: wheel-odometry prediction plus visual-odometry
+  correction using a lightweight EKF.
+- `slip_friction_demo.py`: tire slip ratio, available friction force, and force
+  saturation.
+- `velocity_profile_demo.py`: velocity and acceleration profile over distance.
+- `cbf_safety_demo.py`: CBF-style speed/yaw-rate filtering near obstacles.
+- `controller_tracking_demo.py`: trajectory tracking on a synthetic reference
+  path using the shared vehicle model.
+
+## Interactive Algorithm Labs
+
+For manual algorithm inspection, use the interactive Matplotlib labs. Each lab
+has its own folder under `tests/interactive/labs/<lab_name>/` with `app.py`,
+`README.md`, and room for future `controllers/`, `scenarios/`, or `assets/`.
+Backward-compatible wrappers remain at `tests/interactive/*_lab.py`.
+
+Run through wrappers:
+
+```bash
+python3 tests/interactive/kinematics_dynamics_lab.py
+python3 tests/interactive/cbf_safety_lab.py
+python3 tests/interactive/controller_tracking_lab.py
+python3 tests/interactive/slip_friction_lab.py
+python3 tests/interactive/velocity_profile_lab.py
+python3 tests/interactive/localization_lab.py
+```
+
+These windows have right-side sliders and buttons. The kinematics lab is
+wheel-level: it exposes individual `FL/FR/RL/RR` wheel speeds, rear steering,
+`dt`, and number of integration steps, then solves the body twist from the four
+wheel constraints. The CBF lab follows an octagonal safe-set animation style: red
+area is unsafe, the center of mass moves toward a clicked reference point, and
+CBF projects the desired velocity back into the safe set. Use `Play/Pause` for
+continuous animation or `Step` for frame-by-frame inspection.
+
+The controller lab uses a dropdown-style selector to switch between Pure
+Pursuit, Stanley, and MPPI. Its right panel is grouped with
+separators for controller choice, common parameters, one dynamic
+algorithm-parameter section, and actions. MPPI samples noisy short-horizon
+control sequences, rolls them out through the shared forklift model, scores them,
+and uses softmin weighting to update the nominal control sequence.
+
+Headless validation:
+
+```bash
+bash tests/interactive/run_interactive_smoke.sh
+```
 
 ## Main Topics
 
