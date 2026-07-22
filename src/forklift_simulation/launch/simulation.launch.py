@@ -13,6 +13,11 @@ def generate_launch_description():
     simulation_dir = get_package_share_directory("forklift_simulation")
     planar_launch = os.path.join(simulation_dir, "launch", "planar_simulation.launch.py")
     physics_launch = os.path.join(simulation_dir, "launch", "physics_simulation.launch.py")
+    cangozpi_launch = os.path.join(
+        simulation_dir,
+        "launch",
+        "cangozpi_forklift_simulation.launch.py",
+    )
     default_planar_world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
     default_physics_world = os.path.join(simulation_dir, "worlds", "physics_floor.world")
 
@@ -58,6 +63,21 @@ def generate_launch_description():
                     "spawn_x": LaunchConfiguration("spawn_x"),
                     "spawn_y": LaunchConfiguration("spawn_y"),
                     "spawn_z": LaunchConfiguration("physics_spawn_z"),
+                    "spawn_yaw": LaunchConfiguration("spawn_yaw"),
+                }.items(),
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(cangozpi_launch),
+                condition=IfCondition(PythonExpression(["'", LaunchConfiguration("simulation_mode"), "' == 'cangozpi'"])),
+                launch_arguments={
+                    "use_sim_time": LaunchConfiguration("use_sim_time"),
+                    "gui": LaunchConfiguration("gui"),
+                    "use_rviz": LaunchConfiguration("use_rviz"),
+                    "headless": LaunchConfiguration("headless"),
+                    "world": LaunchConfiguration("physics_world"),
+                    "spawn_x": LaunchConfiguration("spawn_x"),
+                    "spawn_y": LaunchConfiguration("spawn_y"),
+                    "spawn_z": LaunchConfiguration("spawn_z"),
                     "spawn_yaw": LaunchConfiguration("spawn_yaw"),
                 }.items(),
             ),

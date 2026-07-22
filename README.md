@@ -38,6 +38,10 @@ ros2 launch forklift_simulation simulation.launch.py \
 ros2 launch forklift_simulation simulation.launch.py \
   simulation_mode:=physics
 
+# Direct upstream cangozpi forklift model, for model comparison/debug
+ros2 launch forklift_simulation simulation.launch.py \
+  simulation_mode:=cangozpi
+
 # Optional low-friction physics floor
 ros2 launch forklift_simulation simulation.launch.py \
   simulation_mode:=physics \
@@ -70,12 +74,24 @@ colcon test --event-handlers console_direct+
 colcon test-result --verbose
 ```
 
+For the direct upstream cangozpi model path, build the submodule packages first:
+
+```bash
+source /opt/ros/$ROS_DISTRO/setup.bash
+colcon build --symlink-install --event-handlers console_direct+ \
+  --packages-select ros_gazebo_plugins forklift_robot forklift_simulation
+source install/setup.bash
+ros2 launch forklift_simulation simulation.launch.py \
+  simulation_mode:=cangozpi
+```
+
 Architecture notes:
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) describes package responsibilities.
 - [MIGRATION.md](MIGRATION.md) lists old-to-new file locations.
 - [DEPENDENCY_GRAPH.md](DEPENDENCY_GRAPH.md) documents the intended dependency direction.
 - [docs/two_layer_simulation_architecture.md](docs/two_layer_simulation_architecture.md) documents planar vs physics simulation.
+- [docs/cangozpi_forklift_integration.md](docs/cangozpi_forklift_integration.md) documents the upstream forklift-model branch mode.
 - [docs/physics_model_assumptions.md](docs/physics_model_assumptions.md) lists current physics assumptions.
 - [docs/physics_calibration.md](docs/physics_calibration.md) describes calibration steps before sim-to-real use.
 - [docs/rl_environment.md](docs/rl_environment.md) describes the initial Gymnasium-compatible RL boundary.
