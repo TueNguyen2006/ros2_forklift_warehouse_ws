@@ -27,7 +27,7 @@ def generate_launch_description():
             DeclareLaunchArgument("spawn_x", default_value="-2.3"),
             DeclareLaunchArgument("spawn_y", default_value="-2.3"),
             DeclareLaunchArgument("spawn_z", default_value="0.05"),
-            DeclareLaunchArgument("physics_spawn_z", default_value="0.18"),
+            DeclareLaunchArgument("physics_spawn_z", default_value="0.30"),
             DeclareLaunchArgument("spawn_yaw", default_value="1.57"),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(planar_launch),
