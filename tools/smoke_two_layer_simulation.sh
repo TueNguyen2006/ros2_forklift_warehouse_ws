@@ -3,8 +3,14 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
-source install/setup.bash
+source_ros_setup() {
+  set +u
+  source "$1"
+  set -u
+}
+
+source_ros_setup "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
+source_ros_setup install/setup.bash
 
 timeout 60s ros2 launch forklift_simulation simulation.launch.py \
   simulation_mode:=planar \
