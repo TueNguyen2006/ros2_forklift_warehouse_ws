@@ -4,13 +4,13 @@
     <link name="${prefix}_steering_link">
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><box size="0.12 0.08 0.10"/></geometry>
+        <geometry><box size="0.12 0.14 0.18"/></geometry>
         <material name="dark_gray"><color rgba="0.05 0.05 0.05 1.0"/></material>
       </visual>
       <collision>
-        <geometry><box size="0.12 0.08 0.10"/></geometry>
+        <geometry><box size="0.12 0.14 0.18"/></geometry>
       </collision>
-      <xacro:inertial_box mass="2.0" x="0.12" y="0.08" z="0.10">
+      <xacro:inertial_box mass="3.0" x="0.12" y="0.14" z="0.18">
         <origin xyz="0 0 0" rpy="0 0 0"/>
       </xacro:inertial_box>
     </link>
@@ -59,6 +59,26 @@
   </xacro:macro>
 
   <xacro:macro name="fixed_wheel" params="prefix parent x y z wheel_radius wheel_width wheel_mass">
+    <link name="${prefix}_wheel_mount_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><box size="0.14 0.14 0.16"/></geometry>
+        <material name="dark_gray"><color rgba="0.05 0.05 0.05 1.0"/></material>
+      </visual>
+      <collision>
+        <geometry><box size="0.14 0.14 0.16"/></geometry>
+      </collision>
+      <xacro:inertial_box mass="3.0" x="0.14" y="0.14" z="0.16">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+      </xacro:inertial_box>
+    </link>
+
+    <joint name="${prefix}_wheel_mount_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${prefix}_wheel_mount_link"/>
+      <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
+    </joint>
+
     <link name="${prefix}_wheel_link">
       <visual>
         <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
@@ -75,9 +95,9 @@
     </link>
 
     <joint name="${prefix}_wheel_rotation_joint" type="continuous">
-      <parent link="${parent}"/>
+      <parent link="${prefix}_wheel_mount_link"/>
       <child link="${prefix}_wheel_link"/>
-      <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <axis xyz="0 1 0"/>
       <dynamics damping="0.5" friction="0.2"/>
     </joint>
