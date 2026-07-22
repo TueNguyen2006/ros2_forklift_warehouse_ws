@@ -1,0 +1,17 @@
+kinematics:
+  wheelbase: 1.35
+  wheel_radius: 0.16
+  steering_axle: rear
+  drive_axle: front
+
+actuator_limits:
+  max_speed: 0.75
+  max_reverse_speed: 0.35
+  max_accel: 0.45
+  max_decel: 0.65
+  max_steering_angle: 0.55
+  max_steering_rate: 0.65
+  command_timeout_sec: 0.25
+  control_delay_sec: 0.0
+  steering_dead_zone: 0.0
+  backlash: 0.0

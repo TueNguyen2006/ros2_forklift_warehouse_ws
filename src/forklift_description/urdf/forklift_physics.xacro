@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="forklift_physics">
+  <xacro:arg name="steering_axle" default="rear"/>
+  <xacro:arg name="drive_axle" default="front"/>
+  <xacro:arg name="controller_config" default=""/>
+  <xacro:arg name="payload_mass" default="0.0"/>
+  <xacro:arg name="enable_depth_camera" default="false"/>
+
+  <xacro:property name="wheelbase" value="1.35"/>
+  <xacro:property name="track_width" value="1.05"/>
+  <xacro:property name="wheel_radius" value="0.16"/>
+  <xacro:property name="wheel_width" value="0.10"/>
+  <xacro:property name="wheel_mass" value="12.0"/>
+  <xacro:property name="steer_lower" value="-0.55"/>
+  <xacro:property name="steer_upper" value="0.55"/>
+  <xacro:property name="steer_velocity" value="0.65"/>
+
+  <xacro:include filename="forklift_common.xacro"/>
+  <xacro:include filename="forklift_wheels.xacro"/>
+  <xacro:include filename="forklift_ros2_control.xacro"/>
+
+  <xacro:forklift_common_body
+    base_link="base_link"
+    payload_mass="$(arg payload_mass)"
+    enable_depth_camera="$(arg enable_depth_camera)"/>
+
+  <xacro:fixed_wheel
+    prefix="left_front"
+    parent="base_link"
+    x="${wheelbase * 0.5}"
+    y="${track_width * 0.5}"
+    z="-0.10"
+    wheel_radius="${wheel_radius}"
+    wheel_width="${wheel_width}"
+    wheel_mass="${wheel_mass}"/>
+  <xacro:fixed_wheel
+    prefix="right_front"
+    parent="base_link"
+    x="${wheelbase * 0.5}"
+    y="${-track_width * 0.5}"
+    z="-0.10"
+    wheel_radius="${wheel_radius}"
+    wheel_width="${wheel_width}"
+    wheel_mass="${wheel_mass}"/>
+
+  <xacro:steered_wheel
+    prefix="left_rear"
+    parent="base_link"
+    x="${-wheelbase * 0.5}"
+    y="${track_width * 0.5}"
+    z="-0.10"
+    wheel_radius="${wheel_radius}"
+    wheel_width="${wheel_width}"
+    wheel_mass="${wheel_mass}"
+    steering_lower="${steer_lower}"
+    steering_upper="${steer_upper}"
+    steering_velocity="${steer_velocity}"/>
+  <xacro:steered_wheel
+    prefix="right_rear"
+    parent="base_link"
+    x="${-wheelbase * 0.5}"
+    y="${-track_width * 0.5}"
+    z="-0.10"
+    wheel_radius="${wheel_radius}"
+    wheel_width="${wheel_width}"
+    wheel_mass="${wheel_mass}"
+    steering_lower="${steer_lower}"
+    steering_upper="${steer_upper}"
+    steering_velocity="${steer_velocity}"/>
+
+  <xacro:forklift_physics_ros2_control controller_config="$(arg controller_config)"/>
+
+  <gazebo reference="base_link">
+    <mu1>0.85</mu1>
+    <mu2>0.65</mu2>
+    <kp>900000.0</kp>
+    <kd>25.0</kd>
+  </gazebo>
+</robot>

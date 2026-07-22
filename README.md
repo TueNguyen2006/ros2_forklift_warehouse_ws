@@ -27,6 +27,25 @@ ros2 launch forklift_safety safety.launch.py
 ros2 launch forklift_evaluation evaluation.launch.py
 ```
 
+Two-layer simulation entry points:
+
+```bash
+# Fast planar simulation, default/backward-compatible mode
+ros2 launch forklift_simulation simulation.launch.py \
+  simulation_mode:=planar
+
+# Wheel-physics simulation for controller/dynamics/RL development
+ros2 launch forklift_simulation simulation.launch.py \
+  simulation_mode:=physics
+
+# RL environment smoke launch, headless physics mode
+ros2 launch forklift_rl rl_training_simulation.launch.py \
+  headless:=true
+
+# WSL smoke sequence for planar, physics, and RL launch paths
+bash tools/smoke_two_layer_simulation.sh
+```
+
 Build and test from the workspace root:
 
 ```bash
@@ -43,6 +62,10 @@ Architecture notes:
 - [ARCHITECTURE.md](ARCHITECTURE.md) describes package responsibilities.
 - [MIGRATION.md](MIGRATION.md) lists old-to-new file locations.
 - [DEPENDENCY_GRAPH.md](DEPENDENCY_GRAPH.md) documents the intended dependency direction.
+- [docs/two_layer_simulation_architecture.md](docs/two_layer_simulation_architecture.md) documents planar vs physics simulation.
+- [docs/physics_model_assumptions.md](docs/physics_model_assumptions.md) lists current physics assumptions.
+- [docs/physics_calibration.md](docs/physics_calibration.md) describes calibration steps before sim-to-real use.
+- [docs/rl_environment.md](docs/rl_environment.md) describes the initial Gymnasium-compatible RL boundary.
 
 ## Goal
 

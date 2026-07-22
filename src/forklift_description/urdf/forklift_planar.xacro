@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="forklift_planar">
+  <!-- Compatibility wrapper. The active planar launch still builds the legacy
+       visual robot description in Python so behavior and topics stay unchanged. -->
+  <xacro:include filename="forklift.urdf.xacro"/>
+</robot>

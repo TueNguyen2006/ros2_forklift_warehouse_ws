@@ -1,0 +1,15 @@
+enabled: false
+seed: 11
+
+wheel_friction: [0.65, 1.05]
+wheel_radius: [0.155, 0.165]
+chassis_mass: [800.0, 950.0]
+payload_mass: [0.0, 250.0]
+steering_delay: [0.0, 0.08]
+drive_delay: [0.0, 0.08]
+encoder_noise: [0.0, 0.02]
+lidar_noise: [0.0, 0.05]
+initial_pose_x: [-2.6, -2.0]
+initial_pose_y: [-2.6, -2.0]
+goal_pose_x: [1.0, 4.0]
+goal_pose_y: [-1.0, 2.0]

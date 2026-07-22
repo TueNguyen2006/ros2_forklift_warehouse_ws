@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="steered_wheel" params="prefix parent x y z wheel_radius wheel_width wheel_mass steering_lower steering_upper steering_velocity drive:=false">
+    <link name="${prefix}_steering_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><box size="0.12 0.08 0.10"/></geometry>
+        <material name="dark_gray"><color rgba="0.05 0.05 0.05 1.0"/></material>
+      </visual>
+      <collision>
+        <geometry><box size="0.12 0.08 0.10"/></geometry>
+      </collision>
+      <xacro:inertial_box mass="2.0" x="0.12" y="0.08" z="0.10">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+      </xacro:inertial_box>
+    </link>
+
+    <joint name="${prefix}_steering_joint" type="revolute">
+      <parent link="${parent}"/>
+      <child link="${prefix}_steering_link"/>
+      <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="${steering_lower}" upper="${steering_upper}" effort="80.0" velocity="${steering_velocity}"/>
+      <dynamics damping="2.0" friction="0.2"/>
+    </joint>
+
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+        <material name="blue"><color rgba="0.1 0.2 0.9 1.0"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+      <xacro:inertial_cylinder mass="${wheel_mass}" length="${wheel_width}" radius="${wheel_radius}">
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      </xacro:inertial_cylinder>
+    </link>
+
+    <joint name="${prefix}_wheel_rotation_joint" type="continuous">
+      <parent link="${prefix}_steering_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.08" friction="0.02"/>
+    </joint>
+
+    <gazebo reference="${prefix}_wheel_link">
+      <mu1>0.9</mu1>
+      <mu2>0.65</mu2>
+      <kp>800000.0</kp>
+      <kd>20.0</kd>
+      <minDepth>0.001</minDepth>
+      <maxVel>0.2</maxVel>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="fixed_wheel" params="prefix parent x y z wheel_radius wheel_width wheel_mass">
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+        <material name="wheel_blue"><color rgba="0.1 0.2 0.9 1.0"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+      <xacro:inertial_cylinder mass="${wheel_mass}" length="${wheel_width}" radius="${wheel_radius}">
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      </xacro:inertial_cylinder>
+    </link>
+
+    <joint name="${prefix}_wheel_rotation_joint" type="continuous">
+      <parent link="${parent}"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.08" friction="0.02"/>
+    </joint>
+
+    <gazebo reference="${prefix}_wheel_link">
+      <mu1>0.9</mu1>
+      <mu2>0.65</mu2>
+      <kp>800000.0</kp>
+      <kd>20.0</kd>
+      <minDepth>0.001</minDepth>
+      <maxVel>0.2</maxVel>
+    </gazebo>
+  </xacro:macro>
+</robot>
