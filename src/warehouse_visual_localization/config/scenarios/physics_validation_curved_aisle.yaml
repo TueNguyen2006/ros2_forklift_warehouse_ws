@@ -1,0 +1,9 @@
+name: physics_validation_curved_aisle
+simulation_profile: physics_validation
+initial_pose: {x: -2.3, y: -2.3, yaw: 1.57}
+goals:
+  - {name: curved_aisle_goal, x: -0.5, y: 1.2, yaw: 1.57}
+payload_profile: unloaded
+human: {enabled: false}
+timeout_s: 120.0
+acceptance: {goal_success: true, collision_allowed: false}

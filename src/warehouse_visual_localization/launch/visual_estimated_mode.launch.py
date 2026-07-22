@@ -10,10 +10,11 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     visual_dir = get_package_share_directory("warehouse_visual_localization")
-    bringup_dir = get_package_share_directory("forklift_nav_bringup")
+    navigation_dir = get_package_share_directory("forklift_navigation")
+    simulation_dir = get_package_share_directory("forklift_simulation")
     launch_path = os.path.join(visual_dir, "launch", "nav_with_estimated_pose.launch.py")
-    default_world = os.path.join(bringup_dir, "worlds", "small_warehouse_open_top.world")
-    default_map = os.path.join(bringup_dir, "maps", "warehouse_map.yaml")
+    default_world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
+    default_map = os.path.join(navigation_dir, "maps", "warehouse_map.yaml")
     default_params = os.path.join(visual_dir, "config", "nav2_params_visual.yaml")
     default_rviz = os.path.join(visual_dir, "config", "nav2_visualization.rviz")
     default_db = os.path.join(

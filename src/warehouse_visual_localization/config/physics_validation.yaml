@@ -1,0 +1,17 @@
+# Low-speed contact-validation profile. Values are demo defaults, not certified.
+physics_validation:
+  simulation_profile: physics_validation
+  max_linear_speed: 0.12
+  max_angular_speed: 0.20
+  payload_profiles:
+    unloaded: {mass_kg: 0.0, cog_height_m: 0.45}
+    loaded_low_height: {mass_kg: 250.0, cog_height_m: 0.55}
+    loaded_high_cog: {mass_kg: 250.0, cog_height_m: 0.85}
+  human_capsule:
+    radius_m: 0.30
+    height_m: 1.70
+    crossing_period_s: 10.0
+  acceptance:
+    contact_speed_mps: 0.12
+    human_min_distance_m: 0.50
+    timeout_s: 120.0

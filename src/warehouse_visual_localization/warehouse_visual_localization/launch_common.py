@@ -75,8 +75,12 @@ def select_default_database_path(visual_dir: str) -> str:
     return os.path.join(visual_dir, "maps", "warehouse_rtabmap.db")
 
 
-def load_baseline_launch_module(bringup_dir: str):
-    source_path = os.path.join(bringup_dir, "launch", "warehouse_nav_baseline.launch.py")
+def load_baseline_launch_module(simulation_dir: str):
+    source_path = os.path.join(
+        simulation_dir,
+        "launch",
+        "warehouse_nav_baseline_legacy_helpers.launch.py",
+    )
     spec = importlib.util.spec_from_file_location(
         "forklift_nav_baseline_visual_import",
         source_path,
@@ -134,8 +138,8 @@ def configure_visual_planar_base(root, baseline_module) -> None:
     baseline_module.ElementTree.SubElement(plugin, "covariance_yaw").text = "0.01"
 
 
-def build_visual_robot_description(bringup_dir: str, forklift_robot_dir: str) -> str:
-    baseline_module = load_baseline_launch_module(bringup_dir)
+def build_visual_robot_description(simulation_dir: str, forklift_robot_dir: str) -> str:
+    baseline_module = load_baseline_launch_module(simulation_dir)
     original_configure_planar_base = baseline_module._configure_planar_base
     baseline_module._configure_planar_base = (
         lambda root: configure_visual_planar_base(root, baseline_module)
@@ -199,17 +203,23 @@ def _remove_existing_camera_assets(root: ElementTree.Element) -> None:
 
 def get_common_paths():
     visual_dir = get_package_share_directory("warehouse_visual_localization")
-    bringup_dir = get_package_share_directory("forklift_nav_bringup")
+    navigation_dir = get_package_share_directory("forklift_navigation")
+    simulation_dir = get_package_share_directory("forklift_simulation")
     gazebo_ros_dir = get_package_share_directory("gazebo_ros")
-    forklift_robot_dir = get_package_share_directory("forklift_robot")
+    forklift_description_dir = get_package_share_directory("forklift_description")
+    forklift_description_urdf_dir = os.path.join(forklift_description_dir, "urdf")
     ros_gazebo_plugins_prefix = get_package_prefix("gazebo_plugins")
     ros_gazebo_plugin_dir = os.path.join(ros_gazebo_plugins_prefix, "lib")
 
     return {
         "visual_dir": visual_dir,
-        "bringup_dir": bringup_dir,
+        "bringup_dir": navigation_dir,
+        "navigation_dir": navigation_dir,
+        "simulation_dir": simulation_dir,
         "gazebo_ros_dir": gazebo_ros_dir,
-        "forklift_robot_dir": forklift_robot_dir,
+        "forklift_robot_dir": forklift_description_urdf_dir,
+        "forklift_description_dir": forklift_description_dir,
+        "forklift_description_urdf_dir": forklift_description_urdf_dir,
         "ros_gazebo_plugin_dir": ros_gazebo_plugin_dir,
     }
 

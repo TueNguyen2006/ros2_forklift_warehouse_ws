@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
-MAP_DIR = WORKSPACE_ROOT / "src" / "forklift_nav_bringup" / "maps"
+MAP_DIR = WORKSPACE_ROOT / "src" / "forklift_navigation" / "maps"
 MAP_PATH = MAP_DIR / "warehouse_map_wide.png"
 KEEPOUT_MASK_PATH = MAP_DIR / "warehouse_keepout_mask_wide.png"
 SPEED_MASK_PATH = MAP_DIR / "warehouse_speed_mask_wide.png"

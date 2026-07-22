@@ -15,7 +15,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-from forklift_nav_bringup.world_map_generator import default_output_root, ensure_world_map
+from forklift_simulation.world_map_generator import default_output_root, ensure_world_map
 
 from warehouse_visual_localization.launch_common import (
     get_common_paths,
@@ -49,10 +49,11 @@ def _configure_runtime_map(context, *_, **__):
 def generate_launch_description():
     paths = get_common_paths()
     visual_dir = paths["visual_dir"]
-    bringup_dir = paths["bringup_dir"]
+    navigation_dir = paths["navigation_dir"]
+    simulation_dir = paths["simulation_dir"]
 
-    default_map = os.path.join(bringup_dir, "maps", "warehouse_map.yaml")
-    default_world = os.path.join(bringup_dir, "worlds", "small_warehouse_open_top.world")
+    default_map = os.path.join(navigation_dir, "maps", "warehouse_map.yaml")
+    default_world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
     default_nav_params = os.path.join(visual_dir, "config", "nav2_params_visual.yaml")
     default_rviz = os.path.join(visual_dir, "config", "nav2_visualization.rviz")
     default_db = select_default_database_path(visual_dir)
@@ -73,6 +74,18 @@ def generate_launch_description():
     localization = LaunchConfiguration("localization")
     pose_source = LaunchConfiguration("pose_source")
     use_wheel_odom_fusion = LaunchConfiguration("use_wheel_odom_fusion")
+    canonical_filter_enabled = PythonExpression([
+        "'true' if ('", LaunchConfiguration("curvature_speed_limit"), "' == 'true' or '",
+        LaunchConfiguration("human_ssm"), "' == 'true' or '", LaunchConfiguration("cbf_filter"),
+        "' == 'true') else 'false'",
+    ])
+    canonical_monitor_enabled = PythonExpression([
+        "'true' if ('", LaunchConfiguration("canonical_monitor"), "' == 'true' or '",
+        LaunchConfiguration("curvature_speed_limit"), "' == 'true' or '",
+        LaunchConfiguration("corridor_monitor"), "' == 'true' or '",
+        LaunchConfiguration("rollover_monitor"), "' == 'true' or '",
+        LaunchConfiguration("human_ssm"), "' == 'true') else 'false'",
+    ])
 
     visual_pose = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -127,8 +140,8 @@ def generate_launch_description():
 
     def create_nav_stack(*, publish_map_to_odom_tf: str, condition=None):
         return IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(bringup_dir, "launch", "forklift_nav_stack.launch.py")
+                PythonLaunchDescriptionSource(
+                os.path.join(navigation_dir, "launch", "navigation.launch.py")
             ),
             condition=condition,
             launch_arguments={
@@ -172,7 +185,7 @@ def generate_launch_description():
 
     def create_nav_debug_logger(condition=None):
         return Node(
-            package="forklift_nav_bringup",
+            package="forklift_navigation",
             executable="nav_debug_logger",
             name="nav_debug_logger",
             output="screen",
@@ -240,6 +253,51 @@ def generate_launch_description():
     nav_debug_logger = create_nav_debug_logger()
     gazebo_goal_bridge = create_gazebo_goal_bridge()
     pose_monitor = create_pose_monitor()
+    canonical_monitor = Node(
+        package="warehouse_visual_localization",
+        executable="canonical_trajectory_monitor.py",
+        name="canonical_trajectory_monitor",
+        output="screen",
+        condition=IfCondition(canonical_monitor_enabled),
+        parameters=[{
+            "enabled": True,
+            "curvature_speed_limit": ParameterValue(LaunchConfiguration("curvature_speed_limit"), value_type=bool),
+            "corridor_monitor": ParameterValue(LaunchConfiguration("corridor_monitor"), value_type=bool),
+            "rollover_monitor": ParameterValue(LaunchConfiguration("rollover_monitor"), value_type=bool),
+            "human_ssm": ParameterValue(LaunchConfiguration("human_ssm"), value_type=bool),
+            "config_path": os.path.join(visual_dir, "config", "core", "canonical_constraints.yaml"),
+            "use_sim_time": use_sim_time,
+        }],
+    )
+    canonical_filter = Node(
+        package="warehouse_visual_localization",
+        executable="canonical_command_filter.py",
+        name="canonical_command_filter",
+        output="screen",
+        condition=IfCondition(canonical_filter_enabled),
+        parameters=[{
+            "enabled": True,
+            "cbf_filter": ParameterValue(LaunchConfiguration("cbf_filter"), value_type=bool),
+            "input_topic": "/visual_nav/cmd_vel_request",
+            "output_topic": "/canonical/cmd_vel_filtered",
+            "max_speed": 0.32,
+            "max_yaw_rate": 0.32,
+        }],
+    )
+    canonical_human_source = Node(
+        package="warehouse_visual_localization",
+        executable="canonical_human_distance_source.py",
+        name="canonical_human_distance_source",
+        output="screen",
+        condition=IfCondition(LaunchConfiguration("human_ssm")),
+        parameters=[{"enabled": True, "use_sim_time": use_sim_time}],
+    )
+    canonical_benchmark_logger = Node(
+        package="warehouse_visual_localization", executable="canonical_benchmark_logger.py",
+        name="canonical_benchmark_logger", output="screen",
+        condition=IfCondition(LaunchConfiguration("benchmark_logger")),
+        parameters=[{"enabled": True, "use_sim_time": use_sim_time}],
+    )
     planar_motion_guard = Node(
         package="warehouse_visual_localization",
         executable="planar_motion_guard.py",
@@ -247,7 +305,7 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {
-                "input_topic": "/visual_nav/cmd_vel_request",
+                "input_topic": PythonExpression(["'/canonical/cmd_vel_filtered' if '", canonical_filter_enabled, "' == 'true' else '/visual_nav/cmd_vel_request'"]),
                 "output_topic": "/cmd_vel",
                 "hold_timeout_sec": 0.25,
                 "publish_hz": 20.0,
@@ -338,6 +396,13 @@ def generate_launch_description():
             DeclareLaunchArgument("enable_gazebo_goal_bridge", default_value="true"),
             DeclareLaunchArgument("enable_pose_source_monitor", default_value="true"),
             DeclareLaunchArgument("enable_startup_motion_probe", default_value="false"),
+            DeclareLaunchArgument("canonical_monitor", default_value="false"),
+            DeclareLaunchArgument("curvature_speed_limit", default_value="false"),
+            DeclareLaunchArgument("corridor_monitor", default_value="false"),
+            DeclareLaunchArgument("rollover_monitor", default_value="false"),
+            DeclareLaunchArgument("human_ssm", default_value="false"),
+            DeclareLaunchArgument("cbf_filter", default_value="false"),
+            DeclareLaunchArgument("benchmark_logger", default_value="false"),
             DeclareLaunchArgument("wait_for_map_tf_timeout", default_value="90.0"),
             DeclareLaunchArgument("results_csv", default_value=default_eval_csv),
             OpaqueFunction(function=_configure_runtime_map),
@@ -364,6 +429,10 @@ def generate_launch_description():
                     on_exit=[
                         nav_stack_without_localization,
                         planar_motion_guard,
+                        canonical_monitor,
+                        canonical_filter,
+                        canonical_human_source,
+                        canonical_benchmark_logger,
                         nav_debug_logger_without_localization,
                         gazebo_goal_bridge_without_localization,
                         pose_monitor_without_localization,
@@ -385,6 +454,10 @@ def generate_launch_description():
                     on_exit=[
                         nav_stack_with_localization,
                         planar_motion_guard,
+                        canonical_monitor,
+                        canonical_filter,
+                        canonical_human_source,
+                        canonical_benchmark_logger,
                         nav_debug_logger,
                         gazebo_goal_bridge,
                         pose_monitor,

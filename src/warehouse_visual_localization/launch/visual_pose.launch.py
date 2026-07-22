@@ -17,10 +17,10 @@ from warehouse_visual_localization.launch_common import (
 def generate_launch_description():
     paths = get_common_paths()
     visual_dir = paths["visual_dir"]
-    bringup_dir = paths["bringup_dir"]
+    simulation_dir = paths["simulation_dir"]
     ekf_params = os.path.join(visual_dir, "config", "ekf_visual.yaml")
 
-    default_world = os.path.join(bringup_dir, "worlds", "small_warehouse_open_top.world")
+    default_world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
     default_rviz = os.path.join(visual_dir, "config", "visual_pose_debug.rviz")
     default_db = select_default_database_path(visual_dir)
     default_eval_csv = os.path.join(

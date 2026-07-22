@@ -11,7 +11,7 @@ def collect_data_files():
         (f"share/{package_name}", ["package.xml"]),
     ]
 
-    for folder in ["config", "scenarios"]:
+    for folder in ["config", "launch", "scenarios"]:
         for path in Path(folder).rglob("*"):
             if path.is_file():
                 destination = f"share/{package_name}/{path.parent.as_posix()}"

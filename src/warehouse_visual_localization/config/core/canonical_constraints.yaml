@@ -1,0 +1,48 @@
+# Conservative demo defaults only. Validate against the physical forklift/load.
+canonical_constraints:
+  enabled: false
+
+  curvature_speed:
+    enabled: true
+    vehicle_speed_limit: 0.32
+    lateral_acceleration_limit: 0.30
+    epsilon: 1.0e-6
+    smoothing_window: 0
+
+  footprint:
+    enabled: true
+    # Points are in base_footprint/body frame (m), not assumed centred at origin.
+    body_points: [[0.35, 0.50], [0.35, -0.50], [-1.10, -0.50], [-1.10, 0.50]]
+    fork_points: []
+    payload_points: []
+
+  rollover:
+    enabled: true
+    gravity: 9.81
+    track_width: 1.0
+    vehicle_mass: 1000.0
+    vehicle_cog: [0.0, 0.0]
+    vehicle_cog_height: 0.50
+    safety_factor: 0.50
+
+  human_ssm:
+    enabled: false
+    braking_deceleration: 0.65
+    reaction_time: 0.20
+    control_delay: 0.10
+    minimum_margin: 0.50
+
+  docking:
+    enabled: false
+    insertion_length: 1.0
+    pocket_width: 0.20
+    clearance_margin: 0.02
+
+  visual_servo:
+    enabled: false
+
+  cbf:
+    enabled: false
+    alpha: 1.0
+    eta: 0.1
+    fail_safe_stop: true

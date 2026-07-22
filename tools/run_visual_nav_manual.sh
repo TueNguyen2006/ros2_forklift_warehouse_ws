@@ -5,7 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 source_workspace_environment
 rebuild_selected_packages_if_sources_newer \
-  forklift_nav_bringup \
+  forklift_simulation \
+  forklift_navigation \
+  forklift_bringup \
   warehouse_visual_localization
 source "${SCRIPT_DIR}/source_visual_localization_env.sh"
 
@@ -14,7 +16,7 @@ pkill -x gzclient || true
 pkill -x rviz2 || true
 sleep 1
 
-ros2 launch warehouse_visual_localization nav_with_estimated_pose.launch.py \
+ros2 launch forklift_bringup bringup.launch.py \
   gui:=true \
   rviz:=true \
   headless:=false \

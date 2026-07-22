@@ -4,9 +4,10 @@ set -eo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 VISUAL_DIR="${WORKSPACE_DIR}/src/warehouse_visual_localization"
-BRINGUP_DIR="${WORKSPACE_DIR}/src/forklift_nav_bringup"
+NAVIGATION_DIR="${WORKSPACE_DIR}/src/forklift_navigation"
+SIMULATION_DIR="${WORKSPACE_DIR}/src/forklift_simulation"
 
-WORLD_FILE="${WORLD_FILE:-${BRINGUP_DIR}/worlds/small_warehouse_open_top.world}"
+WORLD_FILE="${WORLD_FILE:-${SIMULATION_DIR}/worlds/small_warehouse_open_top.world}"
 SCENARIO_FILE="${SCENARIO_FILE:-${VISUAL_DIR}/config/scenarios/visual_turnaround_sequential.yaml}"
 DATABASE_PATH="${DATABASE_PATH:-${HOME}/ros2_forklift_warehouse_artifacts/results/test_mapping.db}"
 RESULT_FILE="${RESULT_FILE:-/tmp/visual_route_test_result.json}"

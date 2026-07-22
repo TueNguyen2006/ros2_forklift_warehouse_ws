@@ -1,0 +1,34 @@
+collision_monitor:
+  ros__parameters:
+    use_sim_time: True
+    base_frame_id: "base_footprint"
+    odom_frame_id: "odom"
+    cmd_vel_in_topic: "cmd_vel_stability"
+    cmd_vel_out_topic: "/cmd_vel"
+    transform_tolerance: 0.3
+    source_timeout: 0.5
+    base_shift_correction: True
+    stop_pub_timeout: 0.25
+    polygons: ["LoadedStopZone", "LoadedSlowZone"]
+    LoadedStopZone:
+      type: "polygon"
+      points: [1.95, 0.82, 1.95, -0.82, -0.95, -0.82, -0.95, 0.82]
+      action_type: "stop"
+      max_points: 2
+      visualize: True
+      polygon_pub_topic: "loaded_stop_zone"
+      enabled: True
+    LoadedSlowZone:
+      type: "polygon"
+      points: [2.30, 1.02, 2.30, -1.02, -1.20, -1.02, -1.20, 1.02]
+      action_type: "slowdown"
+      slowdown_ratio: 0.35
+      max_points: 1
+      visualize: True
+      polygon_pub_topic: "loaded_slow_zone"
+      enabled: True
+    observation_sources: ["scan"]
+    scan:
+      type: "scan"
+      topic: "/scan"
+      enabled: True

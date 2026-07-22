@@ -6,5 +6,6 @@ tmp_logs/
 
 __pycache__/
 *.py[cod]
+*.so
 
 .DS_Store

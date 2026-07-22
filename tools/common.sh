@@ -9,7 +9,9 @@ LOG_BASE="${LOG_BASE:-${ARTIFACT_ROOT}/log}"
 ensure_required_sources() {
   local missing=()
 
-  [[ -d "${WORKSPACE_DIR}/src/forklift_nav_bringup" ]] || missing+=("src/forklift_nav_bringup")
+  [[ -d "${WORKSPACE_DIR}/src/forklift_simulation" ]] || missing+=("src/forklift_simulation")
+  [[ -d "${WORKSPACE_DIR}/src/forklift_navigation" ]] || missing+=("src/forklift_navigation")
+  [[ -d "${WORKSPACE_DIR}/src/forklift_bringup" ]] || missing+=("src/forklift_bringup")
   [[ -d "${WORKSPACE_DIR}/src/third_party/ROS2-Forklift-Simulation/src/forklift_robot" ]] || missing+=("src/third_party/ROS2-Forklift-Simulation")
   [[ -d "${WORKSPACE_DIR}/src/third_party/aws-robomaker-small-warehouse-world" ]] || missing+=("src/third_party/aws-robomaker-small-warehouse-world")
 

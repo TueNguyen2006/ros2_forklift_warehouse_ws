@@ -17,19 +17,20 @@ from warehouse_visual_localization.launch_common import (
 def generate_launch_description():
     paths = get_common_paths()
     visual_dir = paths["visual_dir"]
-    bringup_dir = paths["bringup_dir"]
+    navigation_dir = paths["navigation_dir"]
+    simulation_dir = paths["simulation_dir"]
     gazebo_ros_dir = paths["gazebo_ros_dir"]
     forklift_robot_dir = paths["forklift_robot_dir"]
     ros_gazebo_plugin_dir = paths["ros_gazebo_plugin_dir"]
 
-    default_world = os.path.join(bringup_dir, "worlds", "small_warehouse_open_top.world")
+    default_world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
     default_visual_rviz = os.path.join(visual_dir, "config", "nav2_visualization.rviz")
     default_baseline_rviz = os.path.join(
-        bringup_dir,
+        navigation_dir,
         "rviz",
         "forklift_nav_with_cameras.rviz",
     )
-    planar_robot_description = build_visual_robot_description(bringup_dir, forklift_robot_dir)
+    planar_robot_description = build_visual_robot_description(simulation_dir, forklift_robot_dir)
     use_sim_time = LaunchConfiguration("use_sim_time")
     gui = LaunchConfiguration("gui")
     rviz = LaunchConfiguration("rviz")
@@ -138,7 +139,7 @@ def generate_launch_description():
             DeclareLaunchArgument("spawn_y", default_value="-2.3"),
             DeclareLaunchArgument("spawn_z", default_value="0.05"),
             DeclareLaunchArgument("spawn_yaw", default_value="1.57"),
-            *make_runtime_env_actions(bringup_dir, ros_gazebo_plugin_dir),
+            *make_runtime_env_actions(simulation_dir, ros_gazebo_plugin_dir),
             planar_robot_state_publisher,
             gazebo,
             planar_spawn_entity,

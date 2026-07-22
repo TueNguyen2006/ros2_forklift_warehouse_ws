@@ -12,6 +12,38 @@ The main entry point is:
 bash tools/run_visual_nav_manual.sh
 ```
 
+The modular ROS 2 entry point is:
+
+```bash
+ros2 launch forklift_bringup bringup.launch.py
+```
+
+Low-level launch entry points:
+
+```bash
+ros2 launch forklift_simulation simulation.launch.py
+ros2 launch forklift_navigation navigation.launch.py
+ros2 launch forklift_safety safety.launch.py
+ros2 launch forklift_evaluation evaluation.launch.py
+```
+
+Build and test from the workspace root:
+
+```bash
+source /opt/ros/$ROS_DISTRO/setup.bash
+rm -rf build install log
+colcon build --symlink-install --event-handlers console_direct+
+source install/setup.bash
+colcon test --event-handlers console_direct+
+colcon test-result --verbose
+```
+
+Architecture notes:
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) describes package responsibilities.
+- [MIGRATION.md](MIGRATION.md) lists old-to-new file locations.
+- [DEPENDENCY_GRAPH.md](DEPENDENCY_GRAPH.md) documents the intended dependency direction.
+
 ## Goal
 
 The original navigation stack worked when the robot pose came directly from the
@@ -495,6 +527,41 @@ Current standalone groups:
 - `cbf_safety_demo.py`: CBF-style speed/yaw-rate filtering near obstacles.
 - `controller_tracking_demo.py`: trajectory tracking on a synthetic reference
   path using the shared vehicle model.
+
+### Optional Canonical Constraints Framework
+
+The repository also contains an opt-in, pure-Python framework linking path
+curvature, footprint corridor margins, quasi-static rollover screening, human
+separation, docking geometry, visual-servo micro-control, and linear CBF
+filtering. It does not change the default Nav2, MPPI, RTAB-Map, EKF, Gazebo, or
+`planar_motion_guard.py` behaviour.
+
+Run its headless scenarios with:
+
+```bash
+cd "$(git rev-parse --show-toplevel)"
+bash tests/standalone/run_canonical_constraints_tests.sh
+```
+
+See [canonical equations](docs/canonical_equations.md) for formulas, units,
+limits, and the optional disabled-by-default ROS monitor.
+
+Run optional integration checks:
+
+```bash
+bash tests/integration/run_canonical_integration_tests.sh
+```
+
+Run the opt-in Gazebo monitor scenario without changing the default demo:
+
+```bash
+HEADLESS=1 bash tests/gazebo/run_curvature_speed_scenario.sh
+```
+
+The Gazebo integration is planar: rollover is an algorithmic ZMP/utilization
+monitor only, not physical chassis rollover simulation. The benchmark runner
+first writes a deterministic core preflight; runtime claims require a completed
+Gazebo goal and recorded ROS-topic artifacts.
 
 ## Interactive Algorithm Labs
 
