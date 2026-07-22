@@ -85,6 +85,7 @@ The default assumption is:
 ```text
 steering_axle:=rear
 drive_axle:=front
+physics_spawn_z:=0.08
 ```
 
 This matches a conservative forklift-like rear-steer layout while keeping drive commands on the front axle. It is an initial model assumption, not a measured vehicle fact.
