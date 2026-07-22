@@ -38,6 +38,12 @@ ros2 launch forklift_simulation simulation.launch.py \
 ros2 launch forklift_simulation simulation.launch.py \
   simulation_mode:=physics
 
+# Wheel-physics simulation with Gazebo GUI and RViz
+ros2 launch forklift_simulation simulation.launch.py \
+  simulation_mode:=physics \
+  gui:=true \
+  use_rviz:=true
+
 # RL environment smoke launch, headless physics mode
 ros2 launch forklift_rl rl_training_simulation.launch.py \
   headless:=true

@@ -17,6 +17,7 @@ def generate_launch_description():
     gazebo_ros_dir = get_package_share_directory("gazebo_ros")
     world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
     robot_xacro = os.path.join(description_dir, "urdf", "forklift_physics.xacro")
+    rviz_config = os.path.join(description_dir, "rviz", "forklift_with_sensors.rviz")
     controller_config = os.path.join(control_dir, "config", "physics_controllers.yaml")
     actuator_config = os.path.join(control_dir, "config", "actuator_limits.yaml")
 
@@ -40,6 +41,8 @@ def generate_launch_description():
             DeclareLaunchArgument("use_sim_time", default_value="true"),
             DeclareLaunchArgument("gui", default_value="true"),
             DeclareLaunchArgument("use_rviz", default_value="false"),
+            DeclareLaunchArgument("rviz_config", default_value=rviz_config),
+            DeclareLaunchArgument("force_software_rendering", default_value="true"),
             DeclareLaunchArgument("headless", default_value="false"),
             DeclareLaunchArgument("world", default_value=world),
             DeclareLaunchArgument("spawn_x", default_value="-2.3"),
@@ -50,10 +53,30 @@ def generate_launch_description():
             SetEnvironmentVariable(
                 "GAZEBO_MODEL_PATH",
                 [
+                    "/usr/share/gazebo-11/models",
+                    ":",
                     os.path.join(simulation_dir, "models"),
                     ":",
                     EnvironmentVariable("GAZEBO_MODEL_PATH", default_value=""),
                 ],
+            ),
+            SetEnvironmentVariable(
+                "GAZEBO_RESOURCE_PATH",
+                ["/usr/share/gazebo-11:", EnvironmentVariable("GAZEBO_RESOURCE_PATH", default_value="")],
+            ),
+            SetEnvironmentVariable(
+                "GAZEBO_PLUGIN_PATH",
+                [
+                    "/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:",
+                    EnvironmentVariable("GAZEBO_PLUGIN_PATH", default_value=""),
+                ],
+            ),
+            SetEnvironmentVariable("OGRE_RESOURCE_PATH", "/usr/lib/x86_64-linux-gnu/OGRE-1.9.0"),
+            SetEnvironmentVariable("QT_X11_NO_MITSHM", "1"),
+            SetEnvironmentVariable(
+                "LIBGL_ALWAYS_SOFTWARE",
+                "1",
+                condition=IfCondition(LaunchConfiguration("force_software_rendering")),
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(os.path.join(gazebo_ros_dir, "launch", "gazebo.launch.py")),
@@ -130,6 +153,15 @@ def generate_launch_description():
                 output="screen",
                 condition=IfCondition(LaunchConfiguration("publish_ground_truth")),
                 parameters=[{"use_sim_time": use_sim_time, "entity_name": "forklift_physics"}],
+            ),
+            Node(
+                package="rviz2",
+                executable="rviz2",
+                name="rviz2",
+                output="screen",
+                condition=IfCondition(LaunchConfiguration("use_rviz")),
+                arguments=["-d", LaunchConfiguration("rviz_config")],
+                parameters=[{"use_sim_time": use_sim_time}],
             ),
         ]
     )
