@@ -32,6 +32,8 @@ RGB-D camera
 
 The planar model is intentionally fast and stable for Nav2, RViz, localization, and debugging.
 
+Planar mode keeps using `small_warehouse_open_top.world` by default.
+
 ## Files That Strip `ros2_control`
 
 - `src/warehouse_visual_localization/warehouse_visual_localization/launch_common.py`
@@ -89,6 +91,8 @@ physics_spawn_z:=0.30
 ```
 
 This matches a conservative forklift-like rear-steer layout while keeping drive commands on the front axle. It is an initial model assumption, not a measured vehicle fact.
+
+Physics mode uses `physics_floor.world` by default. The warehouse mesh ground is not used as the default physics contact surface because its copied AWS model has very high friction and no slip, which can destabilize wheel contact while the wheel model is still being validated.
 
 ## Reusable Parts
 

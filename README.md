@@ -38,6 +38,11 @@ ros2 launch forklift_simulation simulation.launch.py \
 ros2 launch forklift_simulation simulation.launch.py \
   simulation_mode:=physics
 
+# Optional low-friction physics floor
+ros2 launch forklift_simulation simulation.launch.py \
+  simulation_mode:=physics \
+  physics_world:=$(ros2 pkg prefix forklift_simulation)/share/forklift_simulation/worlds/physics_low_friction.world
+
 # Wheel-physics simulation with Gazebo GUI and RViz
 ros2 launch forklift_simulation simulation.launch.py \
   simulation_mode:=physics \
@@ -51,6 +56,8 @@ ros2 launch forklift_rl rl_training_simulation.launch.py \
 # WSL smoke sequence for planar, physics, and RL launch paths
 bash tools/smoke_two_layer_simulation.sh
 ```
+
+Physics mode defaults to `physics_floor.world`, a simple Gazebo plane with explicit contact and friction parameters. Planar mode still defaults to `small_warehouse_open_top.world`. The warehouse ground mesh is intentionally not the default physics contact surface because its copied AWS collision model uses extreme friction and zero slip, which can make wheel-contact debugging look like wheel sinking, sticking, or lateral drift.
 
 Build and test from the workspace root:
 

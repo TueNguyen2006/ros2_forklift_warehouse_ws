@@ -15,7 +15,7 @@ def generate_launch_description():
     description_dir = get_package_share_directory("forklift_description")
     control_dir = get_package_share_directory("forklift_control")
     gazebo_ros_dir = get_package_share_directory("gazebo_ros")
-    world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
+    world = os.path.join(simulation_dir, "worlds", "physics_floor.world")
     robot_xacro = os.path.join(description_dir, "urdf", "forklift_physics.xacro")
     rviz_config = os.path.join(description_dir, "rviz", "forklift_with_sensors.rviz")
     controller_config = os.path.join(control_dir, "config", "physics_controllers.yaml")

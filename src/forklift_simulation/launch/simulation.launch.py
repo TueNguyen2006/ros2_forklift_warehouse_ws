@@ -13,7 +13,8 @@ def generate_launch_description():
     simulation_dir = get_package_share_directory("forklift_simulation")
     planar_launch = os.path.join(simulation_dir, "launch", "planar_simulation.launch.py")
     physics_launch = os.path.join(simulation_dir, "launch", "physics_simulation.launch.py")
-    default_world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
+    default_planar_world = os.path.join(simulation_dir, "worlds", "small_warehouse_open_top.world")
+    default_physics_world = os.path.join(simulation_dir, "worlds", "physics_floor.world")
 
     return LaunchDescription(
         [
@@ -23,7 +24,8 @@ def generate_launch_description():
             DeclareLaunchArgument("use_rviz", default_value="false"),
             DeclareLaunchArgument("rviz", default_value=LaunchConfiguration("use_rviz")),
             DeclareLaunchArgument("headless", default_value="false"),
-            DeclareLaunchArgument("world", default_value=default_world),
+            DeclareLaunchArgument("world", default_value=default_planar_world),
+            DeclareLaunchArgument("physics_world", default_value=default_physics_world),
             DeclareLaunchArgument("spawn_x", default_value="-2.3"),
             DeclareLaunchArgument("spawn_y", default_value="-2.3"),
             DeclareLaunchArgument("spawn_z", default_value="0.05"),
@@ -52,7 +54,7 @@ def generate_launch_description():
                     "gui": LaunchConfiguration("gui"),
                     "use_rviz": LaunchConfiguration("use_rviz"),
                     "headless": LaunchConfiguration("headless"),
-                    "world": LaunchConfiguration("world"),
+                    "world": LaunchConfiguration("physics_world"),
                     "spawn_x": LaunchConfiguration("spawn_x"),
                     "spawn_y": LaunchConfiguration("spawn_y"),
                     "spawn_z": LaunchConfiguration("physics_spawn_z"),
