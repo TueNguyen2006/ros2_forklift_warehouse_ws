@@ -13,7 +13,7 @@ Default assumptions:
 - max steering rate: `0.65 rad/s`;
 - max forward speed: `0.75 m/s`;
 - max reverse speed: `0.35 m/s`.
-- default physics spawn z: `0.14 m`, chosen so the lower wheel collision cylinders start at floor contact while the chassis no longer intersects the wheels.
+- default physics spawn z: `0.18 m`, with `base_link` modeled near wheel-center height so the wheels settle onto the floor without starting below it.
 
 The model intentionally does not use `diff_drive_controller`. `/cmd_vel` is converted through an Ackermann/rear-steer adapter into target speed and steering angle, then into steering and drive joint commands.
 

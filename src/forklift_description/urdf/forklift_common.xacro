@@ -7,21 +7,21 @@
     <joint name="base_footprint_joint" type="fixed">
       <parent link="base_footprint"/>
       <child link="${base_link}"/>
-      <origin xyz="0 0 0.18" rpy="0 0 0"/>
+      <origin xyz="0 0 0.16" rpy="0 0 0"/>
     </joint>
 
     <link name="${base_link}">
       <visual>
-        <origin xyz="0 0 0.25" rpy="0 0 0"/>
-        <geometry><box size="1.65 1.05 0.50"/></geometry>
+        <origin xyz="0 0 0.30" rpy="0 0 0"/>
+        <geometry><box size="1.65 1.05 0.36"/></geometry>
         <material name="green"><color rgba="0.1 0.8 0.2 1.0"/></material>
       </visual>
       <collision>
-        <origin xyz="0 0 0.25" rpy="0 0 0"/>
-        <geometry><box size="1.65 1.05 0.50"/></geometry>
+        <origin xyz="0 0 0.30" rpy="0 0 0"/>
+        <geometry><box size="1.65 1.05 0.36"/></geometry>
       </collision>
-      <xacro:inertial_box mass="${chassis_mass + payload_mass}" x="1.65" y="1.05" z="0.50">
-        <origin xyz="-0.20 0 0.18" rpy="0 0 0"/>
+      <xacro:inertial_box mass="${chassis_mass + payload_mass}" x="1.65" y="1.05" z="0.36">
+        <origin xyz="-0.28 0 0.22" rpy="0 0 0"/>
       </xacro:inertial_box>
     </link>
 
@@ -42,7 +42,7 @@
     <joint name="mast_joint" type="fixed">
       <parent link="${base_link}"/>
       <child link="mast_link"/>
-      <origin xyz="0.78 0 0.42" rpy="0 0 0"/>
+      <origin xyz="0.72 0 0.36" rpy="0 0 0"/>
     </joint>
 
     <link name="fork_carriage_link">

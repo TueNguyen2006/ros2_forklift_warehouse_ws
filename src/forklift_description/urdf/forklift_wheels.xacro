@@ -50,6 +50,7 @@
     <gazebo reference="${prefix}_wheel_link">
       <mu1>0.9</mu1>
       <mu2>0.65</mu2>
+      <fdir1>1 0 0</fdir1>
       <kp>250000.0</kp>
       <kd>80.0</kd>
       <minDepth>0.0005</minDepth>
@@ -84,6 +85,7 @@
     <gazebo reference="${prefix}_wheel_link">
       <mu1>0.9</mu1>
       <mu2>0.65</mu2>
+      <fdir1>1 0 0</fdir1>
       <kp>250000.0</kp>
       <kd>80.0</kd>
       <minDepth>0.0005</minDepth>

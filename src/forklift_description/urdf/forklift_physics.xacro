@@ -11,7 +11,7 @@
   <xacro:property name="wheel_radius" value="0.16"/>
   <xacro:property name="wheel_width" value="0.10"/>
   <xacro:property name="wheel_mass" value="12.0"/>
-  <xacro:property name="wheel_z" value="-0.16"/>
+  <xacro:property name="wheel_z" value="0.0"/>
   <xacro:property name="steer_lower" value="-0.55"/>
   <xacro:property name="steer_upper" value="0.55"/>
   <xacro:property name="steer_velocity" value="0.65"/>
@@ -74,7 +74,7 @@
   <gazebo reference="base_link">
     <mu1>0.85</mu1>
     <mu2>0.65</mu2>
-    <kp>900000.0</kp>
-    <kd>25.0</kd>
+    <kp>250000.0</kp>
+    <kd>80.0</kd>
   </gazebo>
 </robot>
