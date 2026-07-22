@@ -21,7 +21,7 @@
         <geometry><box size="1.65 1.05 0.50"/></geometry>
       </collision>
       <xacro:inertial_box mass="${chassis_mass + payload_mass}" x="1.65" y="1.05" z="0.50">
-        <origin xyz="-0.08 0 0.30" rpy="0 0 0"/>
+        <origin xyz="-0.20 0 0.18" rpy="0 0 0"/>
       </xacro:inertial_box>
     </link>
 

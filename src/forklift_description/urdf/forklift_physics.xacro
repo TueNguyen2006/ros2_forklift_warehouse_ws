@@ -7,10 +7,11 @@
   <xacro:arg name="enable_depth_camera" default="false"/>
 
   <xacro:property name="wheelbase" value="1.35"/>
-  <xacro:property name="track_width" value="1.05"/>
+  <xacro:property name="track_width" value="1.25"/>
   <xacro:property name="wheel_radius" value="0.16"/>
   <xacro:property name="wheel_width" value="0.10"/>
   <xacro:property name="wheel_mass" value="12.0"/>
+  <xacro:property name="wheel_z" value="-0.16"/>
   <xacro:property name="steer_lower" value="-0.55"/>
   <xacro:property name="steer_upper" value="0.55"/>
   <xacro:property name="steer_velocity" value="0.65"/>
@@ -29,7 +30,7 @@
     parent="base_link"
     x="${wheelbase * 0.5}"
     y="${track_width * 0.5}"
-    z="-0.10"
+    z="${wheel_z}"
     wheel_radius="${wheel_radius}"
     wheel_width="${wheel_width}"
     wheel_mass="${wheel_mass}"/>
@@ -38,7 +39,7 @@
     parent="base_link"
     x="${wheelbase * 0.5}"
     y="${-track_width * 0.5}"
-    z="-0.10"
+    z="${wheel_z}"
     wheel_radius="${wheel_radius}"
     wheel_width="${wheel_width}"
     wheel_mass="${wheel_mass}"/>
@@ -48,7 +49,7 @@
     parent="base_link"
     x="${-wheelbase * 0.5}"
     y="${track_width * 0.5}"
-    z="-0.10"
+    z="${wheel_z}"
     wheel_radius="${wheel_radius}"
     wheel_width="${wheel_width}"
     wheel_mass="${wheel_mass}"
@@ -60,7 +61,7 @@
     parent="base_link"
     x="${-wheelbase * 0.5}"
     y="${-track_width * 0.5}"
-    z="-0.10"
+    z="${wheel_z}"
     wheel_radius="${wheel_radius}"
     wheel_width="${wheel_width}"
     wheel_mass="${wheel_mass}"

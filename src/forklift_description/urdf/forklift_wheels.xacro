@@ -21,7 +21,7 @@
       <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
       <axis xyz="0 0 1"/>
       <limit lower="${steering_lower}" upper="${steering_upper}" effort="80.0" velocity="${steering_velocity}"/>
-      <dynamics damping="2.0" friction="0.2"/>
+      <dynamics damping="8.0" friction="1.0"/>
     </joint>
 
     <link name="${prefix}_wheel_link">
@@ -44,16 +44,16 @@
       <child link="${prefix}_wheel_link"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <axis xyz="0 1 0"/>
-      <dynamics damping="0.08" friction="0.02"/>
+      <dynamics damping="0.5" friction="0.2"/>
     </joint>
 
     <gazebo reference="${prefix}_wheel_link">
       <mu1>0.9</mu1>
       <mu2>0.65</mu2>
-      <kp>800000.0</kp>
-      <kd>20.0</kd>
-      <minDepth>0.001</minDepth>
-      <maxVel>0.2</maxVel>
+      <kp>250000.0</kp>
+      <kd>80.0</kd>
+      <minDepth>0.0005</minDepth>
+      <maxVel>0.05</maxVel>
     </gazebo>
   </xacro:macro>
 
@@ -78,16 +78,16 @@
       <child link="${prefix}_wheel_link"/>
       <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
       <axis xyz="0 1 0"/>
-      <dynamics damping="0.08" friction="0.02"/>
+      <dynamics damping="0.5" friction="0.2"/>
     </joint>
 
     <gazebo reference="${prefix}_wheel_link">
       <mu1>0.9</mu1>
       <mu2>0.65</mu2>
-      <kp>800000.0</kp>
-      <kd>20.0</kd>
-      <minDepth>0.001</minDepth>
-      <maxVel>0.2</maxVel>
+      <kp>250000.0</kp>
+      <kd>80.0</kd>
+      <minDepth>0.0005</minDepth>
+      <maxVel>0.05</maxVel>
     </gazebo>
   </xacro:macro>
 </robot>

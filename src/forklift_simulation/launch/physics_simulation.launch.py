@@ -47,7 +47,7 @@ def generate_launch_description():
             DeclareLaunchArgument("world", default_value=world),
             DeclareLaunchArgument("spawn_x", default_value="-2.3"),
             DeclareLaunchArgument("spawn_y", default_value="-2.3"),
-            DeclareLaunchArgument("spawn_z", default_value="0.08"),
+            DeclareLaunchArgument("spawn_z", default_value="0.14"),
             DeclareLaunchArgument("spawn_yaw", default_value="1.57"),
             DeclareLaunchArgument("publish_ground_truth", default_value="true"),
             SetEnvironmentVariable(
